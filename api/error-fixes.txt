@@ -1,0 +1,16 @@
+(1) If you get the @SomeSpringBootAnnotation cannot be resolved error, right click on pom.xml -> Add as Maven Project
+
+(2) To get javadocs, descriptions of the code run: 
+      > mvn dependency:sources dependency:resolve -Dclassifier=javadoc
+
+    or set this in pom.xml:
+      <properties>
+          <maven.dependency.downloadSources>true</maven.dependency.downloadSources>
+          <maven.dependency.downloadJavadocs>true</maven.dependency.downloadJavadocs>
+      </properties>
+    
+    NOTE: they are stored in these paths
+      Linux / macOS: ~/.m2/repository
+      Windows: C:\Users\<YourUsername>\.m2\repository
+      This folder holds jars, poms, source jars, etc. that your projects have ever downloaded.
+      
