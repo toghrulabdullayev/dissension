@@ -123,6 +123,13 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- Configuration metadata — eliminates "unknown property" warnings in IDEs -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
+
 		<!-- Dev Tools -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,0 +1,47 @@
+{
+  "properties": [
+    {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Base64-encoded HMAC-SHA secret used to sign and verify JWT access tokens. Must be at least 32 bytes when decoded. Override via JWT_SECRET env var in production."
+    },
+    {
+      "name": "app.jwt.access-token-expiry-ms",
+      "type": "java.lang.Long",
+      "description": "Access token validity in milliseconds. Default is 900000 (15 minutes).",
+      "defaultValue": 900000
+    },
+    {
+      "name": "app.cors.allowed-origins",
+      "type": "java.lang.String",
+      "description": "Comma-separated list of allowed CORS origins. Override via CORS_ALLOWED_ORIGINS env var."
+    },
+    {
+      "name": "app.oauth2.redirect-uri",
+      "type": "java.lang.String",
+      "description": "Frontend URI that the backend redirects to after a successful OAuth2 login, appending ?token=<accessToken>. Override via OAUTH2_REDIRECT_URI env var."
+    },
+    {
+      "name": "app.turn.host",
+      "type": "java.lang.String",
+      "description": "Hostname or IP of the coturn TURN server used for WebRTC NAT traversal."
+    },
+    {
+      "name": "app.turn.port",
+      "type": "java.lang.Integer",
+      "description": "UDP/TCP port of the coturn TURN server. Default is 3478.",
+      "defaultValue": 3478
+    },
+    {
+      "name": "app.turn.secret",
+      "type": "java.lang.String",
+      "description": "Shared secret used to generate HMAC-SHA1 coturn time-limited credentials."
+    },
+    {
+      "name": "app.turn.ttl-seconds",
+      "type": "java.lang.Long",
+      "description": "Validity period in seconds for TURN credentials issued to clients. Default is 86400 (24 hours).",
+      "defaultValue": 86400
+    }
+  ]
+}
