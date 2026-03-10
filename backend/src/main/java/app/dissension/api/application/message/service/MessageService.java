@@ -8,6 +8,7 @@ import app.dissension.api.application.message.dto.MessageResponse;
 import app.dissension.api.application.message.dto.ReactionResponse;
 import app.dissension.api.application.message.dto.SendMessageRequest;
 import app.dissension.api.application.message.usecase.*;
+import app.dissension.api.application.realtime.port.RealtimeEventPublisher;
 import app.dissension.api.domain.channel.entity.Channel;
 import app.dissension.api.domain.channel.repository.ChannelRepository;
 import app.dissension.api.domain.conversation.repository.ConversationRepository;
@@ -35,18 +36,21 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
     private final ChannelRepository channelRepository;
     private final ConversationRepository conversationRepository;
     private final MessageDomainService messageDomainService;
+    private final RealtimeEventPublisher eventPublisher;
 
     public MessageService(MessageRepository messageRepository,
                           MessageReactionRepository messageReactionRepository,
                           ServerMemberRepository serverMemberRepository,
                           ChannelRepository channelRepository,
-                          ConversationRepository conversationRepository) {
+                          ConversationRepository conversationRepository,
+                          RealtimeEventPublisher eventPublisher) {
         this.messageRepository = messageRepository;
         this.messageReactionRepository = messageReactionRepository;
         this.serverMemberRepository = serverMemberRepository;
         this.channelRepository = channelRepository;
         this.conversationRepository = conversationRepository;
         this.messageDomainService = new MessageDomainService(messageReactionRepository);
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -57,7 +61,9 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
             throw new ForbiddenException("You are not a member of this channel's server");
         }
         Message message = Message.createChannelTextMessage(channelId, senderId, request.content());
-        return MessageResponse.from(messageRepository.save(message));
+        MessageResponse response = MessageResponse.from(messageRepository.save(message));
+        eventPublisher.publishChannelMessageCreated(channelId, response);
+        return response;
     }
 
     @Override
@@ -66,7 +72,9 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
             throw new ForbiddenException("You are not a participant in this conversation");
         }
         Message message = Message.createConversationTextMessage(conversationId, senderId, request.content());
-        return MessageResponse.from(messageRepository.save(message));
+        MessageResponse response = MessageResponse.from(messageRepository.save(message));
+        eventPublisher.publishConversationMessageCreated(conversationId, response);
+        return response;
     }
 
     @Override
@@ -100,7 +108,13 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
             throw new ForbiddenException(e.getMessage());
         }
         message.edit(request.content());
-        return MessageResponse.from(messageRepository.save(message));
+        MessageResponse response = MessageResponse.from(messageRepository.save(message));
+        if (message.getChannelId() != null) {
+            eventPublisher.publishChannelMessageUpdated(message.getChannelId(), response);
+        } else if (message.getConversationId() != null) {
+            eventPublisher.publishConversationMessageUpdated(message.getConversationId(), response);
+        }
+        return response;
     }
 
     @Override
@@ -111,8 +125,15 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
         } catch (SecurityException e) {
             throw new ForbiddenException(e.getMessage());
         }
+        UUID channelId = message.getChannelId();
+        UUID conversationId = message.getConversationId();
         message.softDelete();
         messageRepository.save(message);
+        if (channelId != null) {
+            eventPublisher.publishChannelMessageDeleted(channelId, messageId);
+        } else if (conversationId != null) {
+            eventPublisher.publishConversationMessageDeleted(conversationId, messageId);
+        }
     }
 
     @Override
@@ -123,7 +144,9 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
         Message message = requireMessage(messageId);
         try {
             MessageReaction reaction = messageDomainService.addReaction(message, userId, emoji);
-            return ReactionResponse.from(messageReactionRepository.save(reaction));
+            ReactionResponse response = ReactionResponse.from(messageReactionRepository.save(reaction));
+            eventPublisher.publishReactionAdded(message.getChannelId(), message.getConversationId(), response);
+            return response;
         } catch (IllegalStateException e) {
             throw new ValidationException(e.getMessage());
         }
@@ -134,6 +157,8 @@ public class MessageService implements SendChannelMessageUseCase, SendConversati
         Message message = requireMessage(messageId);
         try {
             messageDomainService.removeReaction(message, userId, emoji);
+            eventPublisher.publishReactionRemoved(
+                    message.getChannelId(), message.getConversationId(), messageId, emoji, userId);
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException(e.getMessage());
         }

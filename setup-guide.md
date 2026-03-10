@@ -105,6 +105,10 @@ JWT_SECRET=your-random-secret-here
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 
+# CORS and OAuth2 post-login redirect:
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+OAUTH2_REDIRECT_URI=http://localhost:5173/auth/callback
+
 # Object storage — skip for now, required when implementing file upload (Phase 8)
 # For local dev you can use MinIO: https://min.io/docs/minio/container/index.html
 SPACES_ACCESS_KEY=placeholder
@@ -176,6 +180,63 @@ The frontend starts on **http://localhost:5173**.
 | Backend health | http://localhost:8080/actuator/health |
 | Frontend | http://localhost:5173 |
 | Google OAuth login | http://localhost:8080/oauth2/authorization/google |
+
+---
+
+## 8. WebSocket / STOMP client contract
+
+The backend exposes a STOMP-over-SockJS endpoint used for real-time messaging, typing indicators, and presence.
+
+### Connecting
+
+```js
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
+
+const client = new Client({
+  webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+  connectHeaders: {
+    Authorization: `Bearer ${accessToken}`,   // JWT access token
+  },
+  onConnect: () => { /* subscribe here */ },
+});
+
+client.activate();
+```
+
+Required npm packages:
+```bash
+npm install @stomp/stompjs sockjs-client
+```
+
+### Subscribe topics
+
+| Topic | Delivered when |
+|-------|---------------|
+| `/topic/channels/{channelId}` | Message created/updated/deleted, reaction added/removed in that text channel |
+| `/topic/conversations/{conversationId}` | Message events in a DM or group conversation |
+| `/topic/presence` | Any user's presence status changes (ONLINE / AWAY / OFFLINE) |
+
+All messages carry a `WsEvent` envelope:
+```json
+{ "type": "MESSAGE_CREATED", "payload": { ... } }
+```
+
+`type` values: `MESSAGE_CREATED`, `MESSAGE_UPDATED`, `MESSAGE_DELETED`, `REACTION_ADDED`, `REACTION_REMOVED`, `TYPING_START`, `TYPING_STOP`, `PRESENCE_UPDATE`
+
+### Send messages (client → server)
+
+| Destination | Body | Effect |
+|------------|------|--------|
+| `/app/channels/{channelId}/typing` | `{}` | Broadcasts `TYPING_START` to the channel; auto-expires after 5 s |
+| `/app/conversations/{conversationId}/typing` | `{}` | Same for DM/group conversations |
+| `/app/presence` | `{"status":"ONLINE"}` | Sets your presence; valid values: `ONLINE`, `AWAY`, `OFFLINE` |
+
+### Notes
+
+- The STOMP `CONNECT` frame **must** include the `Authorization: Bearer <token>` header. Connections without a valid JWT are rejected.
+- Presence is stored in Redis. Connecting automatically sets you `ONLINE`; disconnecting sets you `OFFLINE`.
+- Typing keys have a 5-second TTL in Redis. A background scheduler broadcasts `TYPING_STOP` when they expire, so clients do not need to send a stop event.
 
 ---
 
