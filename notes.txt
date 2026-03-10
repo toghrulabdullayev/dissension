@@ -1,3 +1,6 @@
 (1) .gitkeep is a convention to force Git to track an otherwise empty directory.
 Git doesn't track directories — it only tracks files. If a directory has no files in it, Git ignores it entirely and it won't exist when someone clones the repo. Adding a .gitkeep (an empty file with no special meaning to Git) is the standard workaround to preserve the directory in version control.
 In this project's case: the DDD package directories like domain/user/entity/ are empty right now since no Java classes have been written yet (that's Phase 3). The .gitkeep files ensure those directories exist in the repo so the structure is visible to anyone who clones it, and they'll be deleted naturally once real .java files are added to each package.
+
+(2) You can have nested repos if you push a directory with another .git inside
+
