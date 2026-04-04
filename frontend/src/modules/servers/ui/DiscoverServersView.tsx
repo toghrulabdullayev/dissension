@@ -79,7 +79,7 @@ export function DiscoverServersView({
                   <span className="text-xs font-medium">Banner Placeholder</span>
                 </div>
 
-                <div className="absolute -bottom-7 left-4 z-20 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-white bg-slate-300 text-slate-600 shadow-sm">
+                <div className="absolute -bottom-7 left-4 z-20 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-white bg-slate-300 text-slate-600">
                   <ImageIcon className="h-5 w-5" />
                 </div>
               </div>
