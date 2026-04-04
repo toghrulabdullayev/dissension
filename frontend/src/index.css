@@ -13,3 +13,16 @@
     @apply min-h-screen;
   }
 }
+
+@layer utilities {
+  .servers-scroll-region {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .servers-scroll-region::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}

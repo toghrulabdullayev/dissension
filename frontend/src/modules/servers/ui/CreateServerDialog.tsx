@@ -14,7 +14,7 @@ import { Label } from '../../../shared/ui/label'
 type CreateServerDialogProps = {
   open: boolean
   onClose: () => void
-  onCreateServer: (name: string) => Promise<void>
+  onCreateServer: (name: string, description: string) => Promise<void>
 }
 
 export function CreateServerDialog({
@@ -23,6 +23,7 @@ export function CreateServerDialog({
   onCreateServer,
 }: CreateServerDialogProps) {
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [error, setError] = useState('')
 
   if (!open) {
@@ -32,14 +33,21 @@ export function CreateServerDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = name.trim()
+    const trimmedDescription = description.trim()
 
     if (trimmed.length < 2 || trimmed.length > 100) {
       setError('Server name must be between 2 and 100 characters.')
       return
     }
 
-    await onCreateServer(trimmed)
+    if (trimmedDescription.length > 128) {
+      setError('Server description must be at most 128 characters.')
+      return
+    }
+
+    await onCreateServer(trimmed, trimmedDescription)
     setName('')
+    setDescription('')
     setError('')
     onClose()
   }
@@ -68,6 +76,22 @@ export function CreateServerDialog({
                 placeholder="e.g. Team Alpha"
                 autoFocus
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="server-description">Description</Label>
+              <Input
+                id="server-description"
+                value={description}
+                onChange={(event) => {
+                  setDescription(event.target.value)
+                  if (error) {
+                    setError('')
+                  }
+                }}
+                placeholder="Optional short description"
+                maxLength={128}
               />
             </div>
 

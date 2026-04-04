@@ -18,12 +18,16 @@ public class AppServer {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(length = 128)
+    private String description;
+
     protected AppServer() {
         // Required by JPA.
     }
 
-    public AppServer(String name) {
+    public AppServer(String name, String description) {
         this.name = name;
+        this.description = description;
     }
 
     public Long getId() {
@@ -36,5 +40,13 @@ public class AppServer {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

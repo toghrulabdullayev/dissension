@@ -7,6 +7,7 @@ import { ChannelsPanel } from '../ui/ChannelsPanel'
 import { CreateChannelDialog } from '../ui/CreateChannelDialog'
 import { useServersStore } from '../../servers/model/serversStore'
 import { CreateServerDialog } from '../../servers/ui/CreateServerDialog'
+import { DiscoverServersView } from '../../servers/ui/DiscoverServersView'
 import { ServerSidebar } from '../../servers/ui/ServerSidebar'
 
 export function ChannelsPage() {
@@ -18,6 +19,10 @@ export function ChannelsPage() {
   const servers = useServersStore((state) => state.servers)
   const loadServers = useServersStore((state) => state.loadServers)
   const createServer = useServersStore((state) => state.createServer)
+  const discoverServers = useServersStore((state) => state.discoverServers)
+  const discoverResults = useServersStore((state) => state.discoverResults)
+  const discoverLoading = useServersStore((state) => state.discoverLoading)
+  const discoverError = useServersStore((state) => state.discoverError)
   const selectServer = useServersStore((state) => state.selectServer)
   const clearServers = useServersStore((state) => state.clearServers)
 
@@ -27,6 +32,7 @@ export function ChannelsPage() {
   const clearChannels = useChannelsStore((state) => state.clearChannels)
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
+  const [discoverQuery, setDiscoverQuery] = useState('')
 
   const routeServerId = params.serverId ? Number(params.serverId) : null
   const routeChannelId = params.channelId ? Number(params.channelId) : null
@@ -79,14 +85,6 @@ export function ChannelsPage() {
   }, [token, normalizedServerId, loadChannels])
 
   useEffect(() => {
-    if (!token || servers.length === 0 || normalizedServerId != null) {
-      return
-    }
-
-    navigate(`/channels/${servers[0].id}`, { replace: true })
-  }, [token, servers, normalizedServerId, navigate])
-
-  useEffect(() => {
     if (!token || normalizedServerId == null || activeServer) {
       return
     }
@@ -125,6 +123,14 @@ export function ChannelsPage() {
     navigate,
   ])
 
+  useEffect(() => {
+    if (!token || activeServer) {
+      return
+    }
+
+    void discoverServers('')
+  }, [token, activeServer, discoverServers])
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="flex min-h-screen">
@@ -143,36 +149,49 @@ export function ChannelsPage() {
             navigate(`/channels/${serverId}`)
           }}
           onOpenCreateServer={() => setIsCreateServerOpen(true)}
+          onOpenDiscover={() => navigate('/channels')}
+          isDiscoverActive={activeServer == null}
           onLogout={handleLogout}
         />
 
         <main className="flex flex-1">
-          <ChannelsPanel
-            channels={channels}
-            hasActiveServer={activeServer != null}
-            selectedChannelId={normalizedChannelId}
-            onSelectChannel={(channelId) => {
-              if (!activeServer) {
-                return
-              }
-
-              navigate(`/channels/${activeServer.id}/${channelId}`)
-            }}
-            onOpenCreateChannel={() => setIsCreateChannelOpen(true)}
-          />
-          <ChannelWorkspace
-            username={username}
-            selectedChannel={selectedChannel}
-            currentRole={activeServer?.role ?? 'USER'}
-          />
+          {activeServer ? (
+            <>
+              <ChannelsPanel
+                channels={channels}
+                hasActiveServer={true}
+                selectedChannelId={normalizedChannelId}
+                onSelectChannel={(channelId) => {
+                  navigate(`/channels/${activeServer.id}/${channelId}`)
+                }}
+                onOpenCreateChannel={() => setIsCreateChannelOpen(true)}
+              />
+              <ChannelWorkspace
+                username={username}
+                selectedChannel={selectedChannel}
+                currentRole={activeServer?.role ?? 'USER'}
+              />
+            </>
+          ) : (
+            <DiscoverServersView
+              query={discoverQuery}
+              onQueryChange={setDiscoverQuery}
+              onSearch={async () => {
+                await discoverServers(discoverQuery)
+              }}
+              servers={discoverResults}
+              loading={discoverLoading}
+              error={discoverError}
+            />
+          )}
         </main>
       </div>
 
       <CreateServerDialog
         open={isCreateServerOpen}
         onClose={() => setIsCreateServerOpen(false)}
-        onCreateServer={async (name) => {
-          const created = await createServer(name)
+        onCreateServer={async (name, description) => {
+          const created = await createServer(name, description)
           if (created) {
             navigate(`/channels/${created.id}`)
           }

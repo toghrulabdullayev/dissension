@@ -1,10 +1,11 @@
 import { useAuthStore } from '../../auth/model/authStore'
-import type { Server } from '../model/types'
+import type { DiscoverServer, Server } from '../model/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
 type CreateServerPayload = {
   name: string
+  description?: string | null
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -39,6 +40,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const serversApi = {
   getMyServers: () => request<Server[]>('/api/servers/my'),
+  discoverServers: (query: string) => {
+    const params = new URLSearchParams()
+
+    if (query.trim().length > 0) {
+      params.set('query', query.trim())
+    }
+
+    const queryString = params.toString()
+    const path = queryString ? `/api/servers/discover?${queryString}` : '/api/servers/discover'
+
+    return request<DiscoverServer[]>(path)
+  },
   createServer: (payload: CreateServerPayload) =>
     request<Server>('/api/servers', {
       method: 'POST',

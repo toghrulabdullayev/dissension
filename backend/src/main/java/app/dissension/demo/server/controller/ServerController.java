@@ -1,6 +1,7 @@
 package app.dissension.demo.server.controller;
 
 import app.dissension.demo.server.dto.CreateServerRequest;
+import app.dissension.demo.server.dto.DiscoverServerResponse;
 import app.dissension.demo.server.dto.ServerResponse;
 import app.dissension.demo.server.service.ServerService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,6 +29,14 @@ public class ServerController {
     @GetMapping("/my")
     public ResponseEntity<List<ServerResponse>> getMyServers(Principal principal) {
         List<ServerResponse> servers = serverService.getServersForUser(principal.getName());
+        return ResponseEntity.ok(servers);
+    }
+
+    @GetMapping("/discover")
+    public ResponseEntity<List<DiscoverServerResponse>> discoverServers(
+        @RequestParam(name = "query", required = false) String query
+    ) {
+        List<DiscoverServerResponse> servers = serverService.discoverServers(query);
         return ResponseEntity.ok(servers);
     }
 

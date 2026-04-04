@@ -1,20 +1,27 @@
 import { create } from 'zustand'
 import { serversApi } from '../api/serversApi'
-import type { Server } from './types'
+import type { DiscoverServer, Server } from './types'
 
 type ServersState = {
   servers: Server[]
+  discoverResults: DiscoverServer[]
+  discoverLoading: boolean
+  discoverError: string | null
   activeServerId: number | null
   isLoading: boolean
   error: string | null
   loadServers: () => Promise<void>
-  createServer: (name: string) => Promise<Server | null>
+  discoverServers: (query: string) => Promise<void>
+  createServer: (name: string, description: string) => Promise<Server | null>
   selectServer: (serverId: number) => void
   clearServers: () => void
 }
 
 export const useServersStore = create<ServersState>((set) => ({
   servers: [],
+  discoverResults: [],
+  discoverLoading: false,
+  discoverError: null,
   activeServerId: null,
   isLoading: false,
   error: null,
@@ -42,13 +49,31 @@ export const useServersStore = create<ServersState>((set) => ({
       })
     }
   },
-  createServer: async (name) => {
+  discoverServers: async (query) => {
+    set({ discoverLoading: true, discoverError: null })
+
+    try {
+      const discoverResults = await serversApi.discoverServers(query)
+      set({ discoverResults, discoverLoading: false, discoverError: null })
+    } catch (error) {
+      set({
+        discoverLoading: false,
+        discoverError: error instanceof Error ? error.message : 'Failed to discover servers',
+      })
+    }
+  },
+  createServer: async (name, description) => {
     const trimmedName = name.trim()
     if (!trimmedName) {
       return null
     }
 
-    const createdServer = await serversApi.createServer({ name: trimmedName })
+    const normalizedDescription = description.trim()
+
+    const createdServer = await serversApi.createServer({
+      name: trimmedName,
+      description: normalizedDescription.length > 0 ? normalizedDescription : null,
+    })
 
     set((state) => ({
       servers: [...state.servers, createdServer],
@@ -64,6 +89,9 @@ export const useServersStore = create<ServersState>((set) => ({
   clearServers: () => {
     set({
       servers: [],
+      discoverResults: [],
+      discoverLoading: false,
+      discoverError: null,
       activeServerId: null,
       isLoading: false,
       error: null,
