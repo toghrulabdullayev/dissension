@@ -58,7 +58,7 @@ public class ServerService {
     }
 
     @Transactional(readOnly = true)
-    public List<DiscoverServerResponse> discoverServers(String query) {
+    public List<DiscoverServerResponse> discoverServers(String username, String query) {
         String normalizedQuery = query == null ? "" : query.trim();
 
         List<AppServer> servers = normalizedQuery.isEmpty()
@@ -66,13 +66,34 @@ public class ServerService {
             : appServerRepository.searchByQuery(normalizedQuery);
 
         return servers.stream()
-            .map(this::toDiscoverResponse)
+            .map((server) -> toDiscoverResponse(server, username))
             .sorted(
                 Comparator.comparingLong(DiscoverServerResponse::members)
                     .reversed()
                     .thenComparing(DiscoverServerResponse::id)
             )
             .toList();
+    }
+
+    @Transactional
+    public ServerResponse joinServer(Long serverId, String username) {
+        AppUser user = appUserRepository.findByUsername(username)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        ServerMembership existingMembership = serverMembershipRepository
+            .findByServerIdAndUserUsername(serverId, username)
+            .orElse(null);
+
+        if (existingMembership != null) {
+            return toResponse(existingMembership);
+        }
+
+        AppServer server = appServerRepository.findById(serverId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Server not found"));
+
+        ServerMembership membership = new ServerMembership(server, user, ServerRole.USER);
+        ServerMembership savedMembership = serverMembershipRepository.save(membership);
+        return toResponse(savedMembership);
     }
 
     @Transactional(readOnly = true)
@@ -93,11 +114,12 @@ public class ServerService {
         );
     }
 
-    private DiscoverServerResponse toDiscoverResponse(AppServer server) {
+    private DiscoverServerResponse toDiscoverResponse(AppServer server, String username) {
         long members = serverMembershipRepository.countByServerId(server.getId());
         String owner = serverMembershipRepository.findByServerIdAndRole(server.getId(), ServerRole.OWNER)
             .map((membership) -> membership.getUser().getUsername())
             .orElse("Unknown");
+        boolean joined = serverMembershipRepository.findByServerIdAndUserUsername(server.getId(), username).isPresent();
 
         return new DiscoverServerResponse(
             server.getId(),
@@ -105,7 +127,8 @@ public class ServerService {
             server.getDescription(),
             owner,
             members,
-            0L
+            0L,
+            joined
         );
     }
 

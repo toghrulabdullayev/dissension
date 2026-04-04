@@ -1,4 +1,5 @@
 import { ImageIcon, Search } from 'lucide-react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Button } from '../../../shared/ui/button'
 import { Card } from '../../../shared/ui/card'
@@ -9,6 +10,7 @@ type DiscoverServersViewProps = {
   query: string
   onQueryChange: (value: string) => void
   onSearch: () => Promise<void>
+  onJoinServer: (serverId: number) => Promise<void>
   servers: DiscoverServer[]
   loading: boolean
   error: string | null
@@ -30,10 +32,13 @@ export function DiscoverServersView({
   query,
   onQueryChange,
   onSearch,
+  onJoinServer,
   servers,
   loading,
   error,
 }: DiscoverServersViewProps) {
+  const [joiningServerId, setJoiningServerId] = useState<number | null>(null)
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     await onSearch()
@@ -97,8 +102,30 @@ export function DiscoverServersView({
                 </p>
 
                 <div className="absolute bottom-3 left-4 z-10 -translate-x-2 translate-y-2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100">
-                  <Button type="button" size="sm" className="h-7 px-3 text-xs">
-                    Join
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 px-3 text-xs"
+                    disabled={server.joined || joiningServerId === server.id}
+                    onClick={async () => {
+                      if (server.joined || joiningServerId != null) {
+                        return
+                      }
+
+                      setJoiningServerId(server.id)
+
+                      try {
+                        await onJoinServer(server.id)
+                      } finally {
+                        setJoiningServerId(null)
+                      }
+                    }}
+                  >
+                    {server.joined
+                      ? 'Joined'
+                      : joiningServerId === server.id
+                        ? 'Joining...'
+                        : 'Join'}
                   </Button>
                 </div>
 

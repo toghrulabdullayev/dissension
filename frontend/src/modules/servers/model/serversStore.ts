@@ -12,6 +12,7 @@ type ServersState = {
   error: string | null
   loadServers: () => Promise<void>
   discoverServers: (query: string) => Promise<void>
+  joinServer: (serverId: number) => Promise<Server | null>
   createServer: (name: string, description: string) => Promise<Server | null>
   selectServer: (serverId: number) => void
   clearServers: () => void
@@ -60,6 +61,34 @@ export const useServersStore = create<ServersState>((set) => ({
         discoverLoading: false,
         discoverError: error instanceof Error ? error.message : 'Failed to discover servers',
       })
+    }
+  },
+  joinServer: async (serverId) => {
+    try {
+      const joinedServer = await serversApi.joinServer(serverId)
+
+      set((state) => {
+        const alreadyInServers = state.servers.some((server) => server.id === joinedServer.id)
+
+        return {
+          servers: alreadyInServers
+            ? state.servers.map((server) => (server.id === joinedServer.id ? joinedServer : server))
+            : [...state.servers, joinedServer],
+          discoverResults: state.discoverResults.map((server) =>
+            server.id === serverId
+              ? { ...server, joined: true, members: joinedServer.members }
+              : server,
+          ),
+          error: null,
+        }
+      })
+
+      return joinedServer
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to join server',
+      })
+      return null
     }
   },
   createServer: async (name, description) => {

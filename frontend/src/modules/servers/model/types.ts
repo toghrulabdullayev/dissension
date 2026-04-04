@@ -15,4 +15,5 @@ export type DiscoverServer = {
   owner: string
   members: number
   onlineMembers: number
+  joined: boolean
 }

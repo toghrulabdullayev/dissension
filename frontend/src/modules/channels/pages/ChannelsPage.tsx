@@ -20,6 +20,7 @@ export function ChannelsPage() {
   const loadServers = useServersStore((state) => state.loadServers)
   const createServer = useServersStore((state) => state.createServer)
   const discoverServers = useServersStore((state) => state.discoverServers)
+  const joinServer = useServersStore((state) => state.joinServer)
   const discoverResults = useServersStore((state) => state.discoverResults)
   const discoverLoading = useServersStore((state) => state.discoverLoading)
   const discoverError = useServersStore((state) => state.discoverError)
@@ -178,6 +179,9 @@ export function ChannelsPage() {
               onQueryChange={setDiscoverQuery}
               onSearch={async () => {
                 await discoverServers(discoverQuery)
+              }}
+              onJoinServer={async (serverId) => {
+                await joinServer(serverId)
               }}
               servers={discoverResults}
               loading={discoverLoading}

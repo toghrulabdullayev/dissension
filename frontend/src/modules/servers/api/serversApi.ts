@@ -52,6 +52,10 @@ export const serversApi = {
 
     return request<DiscoverServer[]>(path)
   },
+  joinServer: (serverId: number) =>
+    request<Server>(`/api/servers/${serverId}/join`, {
+      method: 'POST',
+    }),
   createServer: (payload: CreateServerPayload) =>
     request<Server>('/api/servers', {
       method: 'POST',

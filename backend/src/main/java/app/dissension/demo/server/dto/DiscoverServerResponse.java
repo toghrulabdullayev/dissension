@@ -6,6 +6,7 @@ public record DiscoverServerResponse(
     String description,
     String owner,
     long members,
-    long onlineMembers
+    long onlineMembers,
+    boolean joined
 ) {
 }
