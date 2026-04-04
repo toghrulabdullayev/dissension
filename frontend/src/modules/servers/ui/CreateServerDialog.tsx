@@ -14,7 +14,7 @@ import { Label } from '../../../shared/ui/label'
 type CreateServerDialogProps = {
   open: boolean
   onClose: () => void
-  onCreateServer: (name: string) => void
+  onCreateServer: (name: string) => Promise<void>
 }
 
 export function CreateServerDialog({
@@ -29,7 +29,7 @@ export function CreateServerDialog({
     return null
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = name.trim()
 
@@ -38,7 +38,7 @@ export function CreateServerDialog({
       return
     }
 
-    onCreateServer(trimmed)
+    await onCreateServer(trimmed)
     setName('')
     setError('')
     onClose()

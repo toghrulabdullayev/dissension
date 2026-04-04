@@ -1,6 +1,7 @@
 import { KeyRound, UserPlus, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { authApi, ApiError } from '../api/authApi'
 import { useAuthStore } from '../model/authStore'
 import { Button } from '../../../shared/ui/button'
@@ -8,6 +9,7 @@ import { Input } from '../../../shared/ui/input'
 import { Label } from '../../../shared/ui/label'
 
 export function SignupForm() {
+  const navigate = useNavigate()
   const setSession = useAuthStore((state) => state.setSession)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -31,7 +33,7 @@ export function SignupForm() {
     try {
       const response = await authApi.signup({ username, password, confirmPassword })
       setSession(response)
-      setStatusMessage('Account created and signed in successfully.')
+      navigate('/channels')
       setPassword('')
       setConfirmPassword('')
     } catch (error) {

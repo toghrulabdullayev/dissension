@@ -1,7 +1,7 @@
 export type ServerRole = 'OWNER' | 'ADMIN' | 'MOD' | 'USER'
 
 export type Server = {
-  id: string
+  id: number
   name: string
   role: ServerRole
 }

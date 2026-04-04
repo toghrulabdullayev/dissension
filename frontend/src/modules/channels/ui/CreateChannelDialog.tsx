@@ -15,7 +15,7 @@ import type { ChannelType } from '../model/types'
 type CreateChannelDialogProps = {
   open: boolean
   onClose: () => void
-  onCreateChannel: (name: string, type: ChannelType) => void
+  onCreateChannel: (name: string, type: ChannelType) => Promise<void>
 }
 
 export function CreateChannelDialog({
@@ -31,7 +31,7 @@ export function CreateChannelDialog({
     return null
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = name.trim()
 
@@ -40,7 +40,7 @@ export function CreateChannelDialog({
       return
     }
 
-    onCreateChannel(trimmed, type)
+    await onCreateChannel(trimmed, type)
     setName('')
     setType('CHAT')
     setError('')

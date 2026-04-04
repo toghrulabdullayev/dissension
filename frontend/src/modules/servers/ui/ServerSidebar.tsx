@@ -4,8 +4,8 @@ import type { Server } from '../model/types'
 
 type ServerSidebarProps = {
   servers: Server[]
-  activeServerId: string | null
-  onSelectServer: (serverId: string) => void
+  activeServerId: number | null
+  onSelectServer: (serverId: number) => void
   onOpenCreateServer: () => void
   onLogout: () => void
 }

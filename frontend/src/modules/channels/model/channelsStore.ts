@@ -1,37 +1,68 @@
 import { create } from 'zustand'
+import { channelsApi } from '../api/channelsApi'
 import type { Channel } from './types'
 
 type ChannelsState = {
-  channelsByServer: Record<string, Channel[]>
-  selectedChannelIdByServer: Record<string, string | null>
-  createChannel: (serverId: string, name: string, type: Channel['type']) => void
-  selectChannel: (serverId: string, channelId: string) => void
-}
-
-function makeId(prefix: string): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `${prefix}-${crypto.randomUUID()}`
-  }
-
-  return `${prefix}-${Date.now()}-${Math.round(Math.random() * 10000)}`
+  channelsByServer: Record<number, Channel[]>
+  selectedChannelIdByServer: Record<number, number | null>
+  loadingByServer: Record<number, boolean>
+  errorByServer: Record<number, string | null>
+  loadChannels: (serverId: number) => Promise<void>
+  createChannel: (serverId: number, name: string, type: Channel['type']) => Promise<Channel | null>
+  selectChannel: (serverId: number, channelId: number) => void
+  clearChannels: () => void
 }
 
 export const useChannelsStore = create<ChannelsState>((set, get) => ({
   channelsByServer: {},
   selectedChannelIdByServer: {},
-  createChannel: (serverId, name, type) => {
+  loadingByServer: {},
+  errorByServer: {},
+  loadChannels: async (serverId) => {
+    set((state) => ({
+      loadingByServer: { ...state.loadingByServer, [serverId]: true },
+      errorByServer: { ...state.errorByServer, [serverId]: null },
+    }))
+
+    try {
+      const channels = await channelsApi.getChannels(serverId)
+
+      set((state) => {
+        const currentSelection = state.selectedChannelIdByServer[serverId] ?? null
+        const hasSelection = currentSelection != null && channels.some((channel) => channel.id === currentSelection)
+
+        return {
+          channelsByServer: { ...state.channelsByServer, [serverId]: channels },
+          selectedChannelIdByServer: {
+            ...state.selectedChannelIdByServer,
+            [serverId]: hasSelection ? currentSelection : (channels[0]?.id ?? null),
+          },
+          loadingByServer: { ...state.loadingByServer, [serverId]: false },
+          errorByServer: { ...state.errorByServer, [serverId]: null },
+        }
+      })
+    } catch (error) {
+      set((state) => ({
+        loadingByServer: { ...state.loadingByServer, [serverId]: false },
+        errorByServer: {
+          ...state.errorByServer,
+          [serverId]: error instanceof Error ? error.message : 'Failed to load channels',
+        },
+      }))
+    }
+  },
+  createChannel: async (serverId, name, type) => {
     const trimmedName = name.trim()
     if (!trimmedName) {
-      return
+      return null
     }
 
-    const existingChannels = get().channelsByServer[serverId] ?? []
-    const createdChannel: Channel = {
-      id: makeId('chn'),
+    const createdChannel = await channelsApi.createChannel(serverId, {
       name: trimmedName,
       type,
-      position: existingChannels.length + 1,
-    }
+    })
+
+    const existingChannels = get().channelsByServer[serverId] ?? []
 
     set((state) => ({
       channelsByServer: {
@@ -43,6 +74,8 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
         [serverId]: createdChannel.id,
       },
     }))
+
+    return createdChannel
   },
   selectChannel: (serverId, channelId) => {
     set((state) => ({
@@ -51,5 +84,13 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
         [serverId]: channelId,
       },
     }))
+  },
+  clearChannels: () => {
+    set({
+      channelsByServer: {},
+      selectedChannelIdByServer: {},
+      loadingByServer: {},
+      errorByServer: {},
+    })
   },
 }))
