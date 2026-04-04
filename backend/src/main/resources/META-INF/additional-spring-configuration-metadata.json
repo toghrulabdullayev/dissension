@@ -1,0 +1,15 @@
+{
+  "properties": [
+    {
+      "name": "security.jwt.secret",
+      "type": "java.lang.String",
+      "description": "HMAC secret used to sign JWT tokens."
+    },
+    {
+      "name": "security.jwt.expiration-minutes",
+      "type": "java.lang.Long",
+      "description": "JWT expiration time in minutes.",
+      "defaultValue": 60
+    }
+  ]
+}
