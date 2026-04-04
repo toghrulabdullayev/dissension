@@ -25,6 +25,7 @@ export function CreateServerDialog({
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!open) {
     return null
@@ -32,6 +33,11 @@ export function CreateServerDialog({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (isSubmitting) {
+      return
+    }
+
     const trimmed = name.trim()
     const trimmedDescription = description.trim()
 
@@ -45,11 +51,19 @@ export function CreateServerDialog({
       return
     }
 
-    await onCreateServer(trimmed, trimmedDescription)
-    setName('')
-    setDescription('')
-    setError('')
-    onClose()
+    setIsSubmitting(true)
+
+    try {
+      await onCreateServer(trimmed, trimmedDescription)
+      setName('')
+      setDescription('')
+      setError('')
+      onClose()
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Failed to create server.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -101,7 +115,9 @@ export function CreateServerDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">Create</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create'}
+              </Button>
             </div>
           </form>
         </CardContent>

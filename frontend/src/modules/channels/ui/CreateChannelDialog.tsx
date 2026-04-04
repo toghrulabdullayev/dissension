@@ -26,6 +26,7 @@ export function CreateChannelDialog({
   const [name, setName] = useState('')
   const [type, setType] = useState<ChannelType>('CHAT')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!open) {
     return null
@@ -33,6 +34,11 @@ export function CreateChannelDialog({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (isSubmitting) {
+      return
+    }
+
     const trimmed = name.trim()
 
     if (trimmed.length < 2 || trimmed.length > 100) {
@@ -40,11 +46,19 @@ export function CreateChannelDialog({
       return
     }
 
-    await onCreateChannel(trimmed, type)
-    setName('')
-    setType('CHAT')
-    setError('')
-    onClose()
+    setIsSubmitting(true)
+
+    try {
+      await onCreateChannel(trimmed, type)
+      setName('')
+      setType('CHAT')
+      setError('')
+      onClose()
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Failed to create channel.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -96,7 +110,9 @@ export function CreateChannelDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">Create</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Creating...' : 'Create'}
+              </Button>
             </div>
           </form>
         </CardContent>

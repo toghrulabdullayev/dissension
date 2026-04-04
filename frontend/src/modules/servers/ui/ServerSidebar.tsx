@@ -23,8 +23,9 @@ export function ServerSidebar({
 }: ServerSidebarProps) {
   return (
     <aside className="sticky top-0 flex h-screen w-20 shrink-0 flex-col border-r border-slate-200 bg-slate-100/70 p-3">
+      <div className="mb-3 text-center text-xs font-semibold text-slate-500">SERVERS</div>
+
       <div className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mb-3 text-center text-xs font-semibold text-slate-500">SERVERS</div>
 
         <button
           type="button"

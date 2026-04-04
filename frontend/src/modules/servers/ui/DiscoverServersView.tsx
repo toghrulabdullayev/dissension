@@ -69,19 +69,22 @@ export function DiscoverServersView({
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {servers.map((server) => (
-            <Card key={server.id} className="mx-auto flex h-96 w-[90%] flex-col overflow-hidden rounded-lg p-0 shadow-sm">
-              <div className="relative h-[8.8rem] border-b border-slate-200 bg-slate-200">
+            <Card
+              key={server.id}
+              className="group mx-auto flex h-96 w-[90%] flex-col overflow-hidden rounded-lg border-slate-200 p-0 shadow-sm transition-[border-color,box-shadow] duration-300 hover:border-slate-400 hover:shadow-md"
+            >
+              <div className="relative z-10 h-[8.8rem] border-b border-slate-200 bg-slate-200">
                 <div className="absolute inset-0 flex items-center justify-center gap-1.5 text-slate-500">
                   <ImageIcon className="h-4 w-4" />
                   <span className="text-xs font-medium">Banner Placeholder</span>
                 </div>
 
-                <div className="absolute -bottom-7 left-4 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-white bg-slate-300 text-slate-600">
+                <div className="absolute -bottom-7 left-4 z-20 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-white bg-slate-300 text-slate-600 shadow-sm">
                   <ImageIcon className="h-5 w-5" />
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-col px-4 pb-4 pt-9">
+              <div className="relative z-0 flex flex-1 flex-col bg-white px-4 pb-12 pt-11">
                 <div className="mb-1.5 flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
                   <h3 className="line-clamp-1 text-xl font-bold leading-tight">{server.name}</h3>
@@ -93,7 +96,13 @@ export function DiscoverServersView({
                   {normalizeDescription(server.description)}
                 </p>
 
-                <p className="mt-3 text-sm text-slate-600">
+                <div className="absolute bottom-3 left-4 z-10 -translate-x-2 translate-y-2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100">
+                  <Button type="button" size="sm" className="h-7 px-3 text-xs">
+                    Join
+                  </Button>
+                </div>
+
+                <p className="absolute bottom-4 left-28 right-4 text-right text-sm text-slate-600">
                   {server.onlineMembers} online • {server.members} members
                 </p>
               </div>
