@@ -7,6 +7,32 @@ const CHANNELS_PANEL_DEFAULT_WIDTH = 288
 const CHANNELS_PANEL_MIN_WIDTH = 220
 const CHANNELS_PANEL_MAX_WIDTH = 420
 const CHANNELS_PANEL_COLLAPSE_THRESHOLD = 170
+const CHANNELS_PANEL_DESKTOP_BREAKPOINT = 768
+const CHANNELS_PANEL_MOBILE_MIN_WIDTH = 240
+const CHANNELS_PANEL_MOBILE_MAX_WIDTH = 360
+
+function getChannelsPanelMaxWidth(viewportWidth: number) {
+  if (viewportWidth >= 1440) {
+    return CHANNELS_PANEL_MAX_WIDTH
+  }
+
+  if (viewportWidth >= 1280) {
+    return 380
+  }
+
+  if (viewportWidth >= 1024) {
+    return 340
+  }
+
+  return 300
+}
+
+function getChannelsPanelDrawerWidth(viewportWidth: number) {
+  return Math.max(
+    CHANNELS_PANEL_MOBILE_MIN_WIDTH,
+    Math.min(CHANNELS_PANEL_MOBILE_MAX_WIDTH, viewportWidth - 24),
+  )
+}
 
 type ChannelsPanelProps = {
   channels: Channel[]
@@ -64,6 +90,9 @@ export function ChannelsPanel({
   const [openChannelMenuFor, setOpenChannelMenuFor] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [panelWidth, setPanelWidth] = useState(CHANNELS_PANEL_DEFAULT_WIDTH)
+  const [viewportWidth, setViewportWidth] = useState(
+    () => (typeof window === 'undefined' ? 1440 : window.innerWidth),
+  )
   const [tooltip, setTooltip] = useState<{
     name: string
     top: number
@@ -71,6 +100,11 @@ export function ChannelsPanel({
   } | null>(null)
   const resizeStartXRef = useRef(0)
   const resizeStartWidthRef = useRef(CHANNELS_PANEL_DEFAULT_WIDTH)
+  const isMobileViewport = viewportWidth < CHANNELS_PANEL_DESKTOP_BREAKPOINT
+  const maxPanelWidth = getChannelsPanelMaxWidth(viewportWidth)
+  const effectivePanelWidth = isMobileViewport
+    ? getChannelsPanelDrawerWidth(viewportWidth)
+    : Math.max(CHANNELS_PANEL_MIN_WIDTH, Math.min(maxPanelWidth, panelWidth))
 
   const showChannelTooltip = (name: string, element: HTMLElement) => {
     const rect = element.getBoundingClientRect()
@@ -86,6 +120,10 @@ export function ChannelsPanel({
   }
 
   const startResize = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (isMobileViewport) {
+      return
+    }
+
     event.preventDefault()
     resizeStartXRef.current = event.clientX
     resizeStartWidthRef.current = panelWidth
@@ -101,7 +139,7 @@ export function ChannelsPanel({
 
       onPanelCollapsedChange(false)
       setPanelWidth(
-        Math.max(CHANNELS_PANEL_MIN_WIDTH, Math.min(CHANNELS_PANEL_MAX_WIDTH, nextWidth)),
+        Math.max(CHANNELS_PANEL_MIN_WIDTH, Math.min(maxPanelWidth, nextWidth)),
       )
     }
 
@@ -115,13 +153,49 @@ export function ChannelsPanel({
   }
 
   useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth)
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!panelCollapsed) {
       return
     }
 
-    hideChannelTooltip()
-    setOpenChannelMenuFor(null)
+    const timeout = window.setTimeout(() => {
+      setTooltip(null)
+      setOpenChannelMenuFor(null)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
   }, [panelCollapsed])
+
+  useEffect(() => {
+    if (!isMobileViewport || panelCollapsed) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onPanelCollapsedChange(true)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMobileViewport, panelCollapsed, onPanelCollapsedChange])
 
   useEffect(() => {
     if (openChannelMenuFor == null) {
@@ -156,170 +230,199 @@ export function ChannelsPanel({
     return null
   }
 
-  return (
-    <>
-      <>
-        <section
-          className="flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white"
-          style={{ width: `${panelWidth}px` }}
-        >
-          <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="truncate text-sm font-semibold text-slate-800">{serverName}</p>
-              <button
-                type="button"
-                onClick={() => onLeaveServer?.()}
-                className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
-              >
-                Leave
-              </button>
-            </div>
-
-            <div className="-mx-4 my-3 border-t border-slate-200" />
-
-            <div className="flex items-center justify-between gap-1">
-              <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
-              <button
-                type="button"
-                onClick={onOpenCreateChannel}
-                disabled={!hasActiveServer}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
-              >
-                <Plus className="h-3 w-3" />
-                New
-              </button>
-            </div>
-          </div>
-
-          <div
-            className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden p-4"
-            onScroll={hideChannelTooltip}
+  const panelContent = (
+    <section
+      className={[
+        isMobileViewport
+          ? 'fixed inset-y-0 left-0 z-50 flex max-w-[calc(100vw-1rem)] flex-col border-r border-slate-200 bg-white shadow-2xl'
+          : 'flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white',
+      ].join(' ')}
+      style={{ width: `${effectivePanelWidth}px` }}
+    >
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-semibold text-slate-800">{serverName}</p>
+          <button
+            type="button"
+            onClick={() => onLeaveServer?.()}
+            className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
           >
-            {channels.length === 0 ? (
-              <p className="text-sm text-slate-500">No channels in this server yet.</p>
-            ) : (
-              <div className="space-y-1">
-                {channels
-                  .slice()
-                  .sort((a, b) => a.position - b.position)
-                  .map((channel) => {
-                    const active = channel.id === selectedChannelId
-                    const menuOpen = openChannelMenuFor === channel.id
+            Leave
+          </button>
+        </div>
 
-                    return (
-                      <div key={channel.id} className="group relative">
+        <div className="-mx-4 my-3 border-t border-slate-200" />
+
+        <div className="flex items-center justify-between gap-1">
+          <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
+          <button
+            type="button"
+            onClick={onOpenCreateChannel}
+            disabled={!hasActiveServer}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+          >
+            <Plus className="h-3 w-3" />
+            New
+          </button>
+        </div>
+      </div>
+
+      <div
+        className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden p-4"
+        onScroll={hideChannelTooltip}
+      >
+        {channels.length === 0 ? (
+          <p className="text-sm text-slate-500">No channels in this server yet.</p>
+        ) : (
+          <div className="space-y-1">
+            {channels
+              .slice()
+              .sort((a, b) => a.position - b.position)
+              .map((channel) => {
+                const active = channel.id === selectedChannelId
+                const menuOpen = openChannelMenuFor === channel.id
+
+                return (
+                  <div key={channel.id} className="group relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenChannelMenuFor(null)
+                        onSelectChannel(channel.id)
+                        if (isMobileViewport) {
+                          onPanelCollapsedChange(true)
+                        }
+                      }}
+                      className={[
+                        'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
+                        active
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                      ].join(' ')}
+                    >
+                      {channelIcon(channel.type)}
+                      <span
+                        className="min-w-0 flex-1 truncate"
+                        onMouseEnter={(event) => showChannelTooltip(channel.name, event.currentTarget)}
+                        onMouseLeave={hideChannelTooltip}
+                      >
+                        {channel.name}
+                      </span>
+                      <span
+                        className={[
+                          'ml-auto text-[10px] uppercase tracking-wide transition',
+                          canManageChannels
+                            ? (menuOpen ? 'opacity-0' : 'opacity-75 group-hover:opacity-0')
+                            : 'opacity-75',
+                        ].join(' ')}
+                      >
+                        {channelTypeLabel(channel.type)}
+                      </span>
+                    </button>
+
+                    {canManageChannels ? (
+                      <button
+                        type="button"
+                        data-channel-menu="true"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setActionError(null)
+                          setOpenChannelMenuFor((value) => (value === channel.id ? null : channel.id))
+                        }}
+                        className={[
+                          'absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border transition',
+                          menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                          active
+                            ? 'border-slate-700 text-slate-200 hover:bg-slate-800'
+                            : 'border-slate-200 text-slate-500 hover:bg-slate-100',
+                        ].join(' ')}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    ) : null}
+
+                    {menuOpen ? (
+                      <div
+                        data-channel-menu="true"
+                        className="absolute right-2 top-10 z-20 w-40 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+                      >
                         <button
                           type="button"
+                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
                           onClick={() => {
+                            onOpenUpdateChannel?.(channel)
                             setOpenChannelMenuFor(null)
-                            onSelectChannel(channel.id)
                           }}
-                          className={[
-                            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
-                            active
-                              ? 'bg-slate-900 text-white'
-                              : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
-                          ].join(' ')}
                         >
-                          {channelIcon(channel.type)}
-                          <span
-                            className="min-w-0 flex-1 truncate"
-                            onMouseEnter={(event) => showChannelTooltip(channel.name, event.currentTarget)}
-                            onMouseLeave={hideChannelTooltip}
-                          >
-                            {channel.name}
-                          </span>
-                          <span
-                            className={[
-                              'ml-auto text-[10px] uppercase tracking-wide transition',
-                              canManageChannels
-                                ? (menuOpen ? 'opacity-0' : 'opacity-75 group-hover:opacity-0')
-                                : 'opacity-75',
-                            ].join(' ')}
-                          >
-                            {channelTypeLabel(channel.type)}
-                          </span>
+                          Update channel
                         </button>
+                        <button
+                          type="button"
+                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
+                          onClick={async () => {
+                            if (!onDeleteChannel) {
+                              setOpenChannelMenuFor(null)
+                              return
+                            }
 
-                        {canManageChannels ? (
-                          <button
-                            type="button"
-                            data-channel-menu="true"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setActionError(null)
-                              setOpenChannelMenuFor((value) => (value === channel.id ? null : channel.id))
-                            }}
-                            className={[
-                              'absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border transition',
-                              menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-                              active
-                                ? 'border-slate-700 text-slate-200 hover:bg-slate-800'
-                                : 'border-slate-200 text-slate-500 hover:bg-slate-100',
-                            ].join(' ')}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        ) : null}
+                            setActionError(null)
 
-                        {menuOpen ? (
-                          <div
-                            data-channel-menu="true"
-                            className="absolute right-2 top-10 z-20 w-40 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
-                          >
-                            <button
-                              type="button"
-                              className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
-                              onClick={() => {
-                                onOpenUpdateChannel?.(channel)
-                                setOpenChannelMenuFor(null)
-                              }}
-                            >
-                              Update channel
-                            </button>
-                            <button
-                              type="button"
-                              className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
-                              onClick={async () => {
-                                if (!onDeleteChannel) {
-                                  setOpenChannelMenuFor(null)
-                                  return
-                                }
+                            try {
+                              await onDeleteChannel(channel)
+                            } catch (error) {
+                              setActionError(
+                                error instanceof Error ? error.message : `Failed to delete ${channel.name}`,
+                              )
+                            }
 
-                                setActionError(null)
-
-                                try {
-                                  await onDeleteChannel(channel)
-                                } catch (error) {
-                                  setActionError(
-                                    error instanceof Error ? error.message : `Failed to delete ${channel.name}`,
-                                  )
-                                }
-
-                                setOpenChannelMenuFor(null)
-                              }}
-                            >
-                              Delete channel
-                            </button>
-                          </div>
-                        ) : null}
+                            setOpenChannelMenuFor(null)
+                          }}
+                        >
+                          Delete channel
+                        </button>
                       </div>
-                    )
-                  })}
+                    ) : null}
+                  </div>
+                )
+              })}
 
-                {actionError ? <p className="pt-2 text-xs text-red-600">{actionError}</p> : null}
-              </div>
-            )}
+            {actionError ? <p className="pt-2 text-xs text-red-600">{actionError}</p> : null}
           </div>
-        </section>
+        )}
+      </div>
+    </section>
+  )
 
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          onMouseDown={startResize}
-          className="w-1 cursor-col-resize bg-slate-200 transition hover:bg-slate-300"
-        />
-      </>
+  return (
+    <>
+      {isMobileViewport
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                aria-label="Close channels drawer"
+                onClick={() => {
+                  setOpenChannelMenuFor(null)
+                  hideChannelTooltip()
+                  onPanelCollapsedChange(true)
+                }}
+                className="fixed inset-0 z-40 bg-slate-900/20"
+              />
+              {panelContent}
+            </>,
+            document.body,
+          )
+        : (
+            <>
+              {panelContent}
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                onMouseDown={startResize}
+                className="w-1 cursor-col-resize bg-slate-200 transition hover:bg-slate-300"
+              />
+            </>
+          )}
 
       {tooltip
         ? createPortal(

@@ -14,6 +14,7 @@ import type { ServerMember } from '../../servers/model/types'
 import type { Channel } from '../model/types'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const MOBILE_BREAKPOINT = 768
 
 function normalizeUuid(value: string | undefined): string | null {
   if (!value) {
@@ -49,7 +50,9 @@ export function ChannelsPage() {
   const clearChannels = useChannelsStore((state) => state.clearChannels)
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
-  const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(false)
+  const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < MOBILE_BREAKPOINT,
+  )
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null)
   const [discoverQuery, setDiscoverQuery] = useState('')
   const [serverMembers, setServerMembers] = useState<ServerMember[]>([])
@@ -180,6 +183,20 @@ export function ChannelsPage() {
       cancelled = true
     }
   }, [token, activeServer])
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < MOBILE_BREAKPOINT) {
+        setChannelsPanelCollapsed(true)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
