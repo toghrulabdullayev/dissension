@@ -22,6 +22,7 @@ export function CreateServerDialog({
   onClose,
   onCreateServer,
 }: CreateServerDialogProps) {
+  const DESCRIPTION_MAX_LENGTH = 150
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
@@ -46,8 +47,8 @@ export function CreateServerDialog({
       return
     }
 
-    if (trimmedDescription.length > 128) {
-      setError('Server description must be at most 128 characters.')
+    if (trimmedDescription.length > DESCRIPTION_MAX_LENGTH) {
+      setError(`Server description must be at most ${DESCRIPTION_MAX_LENGTH} characters.`)
       return
     }
 
@@ -95,7 +96,7 @@ export function CreateServerDialog({
 
             <div className="space-y-2">
               <Label htmlFor="server-description">Description</Label>
-              <Input
+              <textarea
                 id="server-description"
                 value={description}
                 onChange={(event) => {
@@ -105,8 +106,13 @@ export function CreateServerDialog({
                   }
                 }}
                 placeholder="Optional short description"
-                maxLength={128}
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                rows={4}
+                className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-offset-white transition placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
               />
+              <p className="text-right text-xs text-slate-500">
+                {DESCRIPTION_MAX_LENGTH - description.length} chars left
+              </p>
             </div>
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}

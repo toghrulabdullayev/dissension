@@ -7,7 +7,7 @@ public record CreateServerRequest(
     @NotBlank(message = "Server name is required")
     @Size(min = 2, max = 100, message = "Server name must be between 2 and 100 characters")
     String name,
-    @Size(max = 128, message = "Server description must be at most 128 characters")
+    @Size(max = 150, message = "Server description must be at most 150 characters")
     String description
 ) {
 }

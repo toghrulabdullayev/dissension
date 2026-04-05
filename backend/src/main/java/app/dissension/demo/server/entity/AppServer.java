@@ -21,7 +21,7 @@ public class AppServer {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 128)
+    @Column(length = 150)
     private String description;
 
     protected AppServer() {

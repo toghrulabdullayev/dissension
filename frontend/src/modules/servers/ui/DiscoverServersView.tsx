@@ -18,14 +18,7 @@ type DiscoverServersViewProps = {
 
 function normalizeDescription(description: string | null) {
   const fallback = 'No description provided.'
-  const raw = description?.trim() || fallback
-  const words = raw.split(/\s+/)
-
-  if (words.length <= 60) {
-    return raw
-  }
-
-  return `${words.slice(0, 60).join(' ')}...`
+  return description?.trim() || fallback
 }
 
 export function DiscoverServersView({
@@ -97,7 +90,7 @@ export function DiscoverServersView({
 
                 <p className="mb-3 text-xs text-slate-600">Owner: {server.owner}</p>
 
-                <p className="h-14 overflow-hidden text-sm leading-5 text-slate-700 line-clamp-3">
+                <p className="min-h-16 overflow-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-5 text-slate-700 line-clamp-4">
                   {normalizeDescription(server.description)}
                 </p>
 
