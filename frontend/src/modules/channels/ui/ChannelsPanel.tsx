@@ -25,14 +25,14 @@ type ChannelsPanelProps = {
 
 function channelIcon(type: ChannelType) {
   if (type === 'INFO') {
-    return <Info className="h-4 w-4" />
+    return <Info className="h-4 w-4 shrink-0" />
   }
 
   if (type === 'CALL') {
-    return <Phone className="h-4 w-4" />
+    return <Phone className="h-4 w-4 shrink-0" />
   }
 
-  return <Hash className="h-4 w-4" />
+  return <Hash className="h-4 w-4 shrink-0" />
 }
 
 function channelTypeLabel(type: ChannelType) {
@@ -223,7 +223,7 @@ export function ChannelsPanel({
                         >
                           {channelIcon(channel.type)}
                           <span
-                            className="truncate"
+                            className="min-w-0 flex-1 truncate"
                             onMouseEnter={(event) => showChannelTooltip(channel.name, event.currentTarget)}
                             onMouseLeave={hideChannelTooltip}
                           >

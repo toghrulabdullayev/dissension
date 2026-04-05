@@ -392,7 +392,7 @@ export function ChannelWorkspace({
                                       {canChangeRole ? (
                                         <button
                                           type="button"
-                                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                                          className="w-full truncate rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
                                           onClick={async () => {
                                             setMembersActionError(null)
 
@@ -417,7 +417,7 @@ export function ChannelWorkspace({
                                       {canBan ? (
                                         <button
                                           type="button"
-                                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
+                                          className="w-full truncate rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
                                           onClick={async () => {
                                             setMembersActionError(null)
 
