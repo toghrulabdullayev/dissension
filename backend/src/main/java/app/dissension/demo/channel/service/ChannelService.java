@@ -8,6 +8,7 @@ import app.dissension.demo.server.entity.ServerMembership;
 import app.dissension.demo.server.model.ServerRole;
 import app.dissension.demo.server.service.ServerService;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,7 @@ public class ChannelService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChannelResponse> getChannelsForServer(Long serverId, String username) {
+    public List<ChannelResponse> getChannelsForServer(UUID serverId, String username) {
         serverService.requireMembership(serverId, username);
 
         return appChannelRepository.findByServerIdOrderByPositionAsc(serverId)
@@ -35,7 +36,7 @@ public class ChannelService {
     }
 
     @Transactional
-    public ChannelResponse createChannel(Long serverId, String username, CreateChannelRequest request) {
+    public ChannelResponse createChannel(UUID serverId, String username, CreateChannelRequest request) {
         ServerMembership membership = serverService.requireMembership(serverId, username);
 
         if (membership.getRole() == ServerRole.USER) {

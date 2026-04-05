@@ -39,8 +39,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const channelsApi = {
-  getChannels: (serverId: number) => request<Channel[]>(`/api/servers/${serverId}/channels`),
-  createChannel: (serverId: number, payload: CreateChannelPayload) =>
+  getChannels: (serverId: string) => request<Channel[]>(`/api/servers/${serverId}/channels`),
+  createChannel: (serverId: string, payload: CreateChannelPayload) =>
     request<Channel>(`/api/servers/${serverId}/channels`, {
       method: 'POST',
       body: JSON.stringify(payload),

@@ -4,8 +4,8 @@ import type { Channel, ChannelType } from '../model/types'
 type ChannelsPanelProps = {
   channels: Channel[]
   hasActiveServer: boolean
-  selectedChannelId: number | null
-  onSelectChannel: (channelId: number) => void
+  selectedChannelId: string | null
+  onSelectChannel: (channelId: string) => void
   onOpenCreateChannel: () => void
 }
 

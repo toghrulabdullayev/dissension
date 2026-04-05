@@ -1,7 +1,7 @@
 export type ServerRole = 'OWNER' | 'ADMIN' | 'MOD' | 'USER'
 
 export type Server = {
-  id: number
+  id: string
   name: string
   description: string | null
   members: number
@@ -9,11 +9,17 @@ export type Server = {
 }
 
 export type DiscoverServer = {
-  id: number
+  id: string
   name: string
   description: string | null
   owner: string
   members: number
   onlineMembers: number
   joined: boolean
+}
+
+export type ServerMember = {
+  username: string
+  imageUrl: string | null
+  role: ServerRole
 }

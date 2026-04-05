@@ -4,6 +4,7 @@ import app.dissension.demo.auth.entity.AppUser;
 import app.dissension.demo.auth.repository.AppUserRepository;
 import app.dissension.demo.server.dto.CreateServerRequest;
 import app.dissension.demo.server.dto.DiscoverServerResponse;
+import app.dissension.demo.server.dto.ServerMemberResponse;
 import app.dissension.demo.server.dto.ServerResponse;
 import app.dissension.demo.server.entity.AppServer;
 import app.dissension.demo.server.entity.ServerMembership;
@@ -12,6 +13,7 @@ import app.dissension.demo.server.repository.AppServerRepository;
 import app.dissension.demo.server.repository.ServerMembershipRepository;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +53,7 @@ public class ServerService {
 
     @Transactional(readOnly = true)
     public List<ServerResponse> getServersForUser(String username) {
-        return serverMembershipRepository.findByUserUsernameOrderByServerIdAsc(username)
+        return serverMembershipRepository.findByUserUsernameOrderByIdAsc(username)
             .stream()
             .map(this::toResponse)
             .toList();
@@ -70,13 +72,13 @@ public class ServerService {
             .sorted(
                 Comparator.comparingLong(DiscoverServerResponse::members)
                     .reversed()
-                    .thenComparing(DiscoverServerResponse::id)
+                    .thenComparing(DiscoverServerResponse::name, String.CASE_INSENSITIVE_ORDER)
             )
             .toList();
     }
 
     @Transactional
-    public ServerResponse joinServer(Long serverId, String username) {
+    public ServerResponse joinServer(UUID serverId, String username) {
         AppUser user = appUserRepository.findByUsername(username)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
@@ -97,7 +99,21 @@ public class ServerService {
     }
 
     @Transactional(readOnly = true)
-    public ServerMembership requireMembership(Long serverId, String username) {
+    public List<ServerMemberResponse> getServerMembers(UUID serverId, String username) {
+        requireMembership(serverId, username);
+
+        return serverMembershipRepository.findByServerIdOrderByIdAsc(serverId)
+            .stream()
+            .map((membership) -> new ServerMemberResponse(
+                membership.getUser().getUsername(),
+                membership.getUser().getImageUrl(),
+                membership.getRole()
+            ))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ServerMembership requireMembership(UUID serverId, String username) {
         return serverMembershipRepository.findByServerIdAndUserUsername(serverId, username)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a member of this server"));
     }

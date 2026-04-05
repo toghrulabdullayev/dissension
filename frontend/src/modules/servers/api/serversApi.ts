@@ -1,5 +1,5 @@
 import { useAuthStore } from '../../auth/model/authStore'
-import type { DiscoverServer, Server } from '../model/types'
+import type { DiscoverServer, Server, ServerMember } from '../model/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -52,10 +52,11 @@ export const serversApi = {
 
     return request<DiscoverServer[]>(path)
   },
-  joinServer: (serverId: number) =>
+  joinServer: (serverId: string) =>
     request<Server>(`/api/servers/${serverId}/join`, {
       method: 'POST',
     }),
+  getServerMembers: (serverId: string) => request<ServerMember[]>(`/api/servers/${serverId}/members`),
   createServer: (payload: CreateServerPayload) =>
     request<Server>('/api/servers', {
       method: 'POST',

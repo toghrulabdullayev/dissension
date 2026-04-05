@@ -7,14 +7,14 @@ type ServersState = {
   discoverResults: DiscoverServer[]
   discoverLoading: boolean
   discoverError: string | null
-  activeServerId: number | null
+  activeServerId: string | null
   isLoading: boolean
   error: string | null
   loadServers: () => Promise<void>
   discoverServers: (query: string) => Promise<void>
-  joinServer: (serverId: number) => Promise<Server | null>
+  joinServer: (serverId: string) => Promise<Server | null>
   createServer: (name: string, description: string) => Promise<Server | null>
-  selectServer: (serverId: number) => void
+  selectServer: (serverId: string) => void
   clearServers: () => void
 }
 

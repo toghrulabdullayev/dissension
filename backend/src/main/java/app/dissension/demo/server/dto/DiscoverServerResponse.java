@@ -1,7 +1,9 @@
 package app.dissension.demo.server.dto;
 
+import java.util.UUID;
+
 public record DiscoverServerResponse(
-    Long id,
+    UUID id,
     String name,
     String description,
     String owner,

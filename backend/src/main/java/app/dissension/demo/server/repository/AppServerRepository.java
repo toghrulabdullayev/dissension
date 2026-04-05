@@ -2,11 +2,12 @@ package app.dissension.demo.server.repository;
 
 import app.dissension.demo.server.entity.AppServer;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface AppServerRepository extends JpaRepository<AppServer, Long> {
+public interface AppServerRepository extends JpaRepository<AppServer, UUID> {
 
 	List<AppServer> findAllByOrderByIdAsc();
 

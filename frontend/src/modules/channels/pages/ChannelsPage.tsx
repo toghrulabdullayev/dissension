@@ -6,9 +6,21 @@ import { ChannelWorkspace } from '../ui/ChannelWorkspace'
 import { ChannelsPanel } from '../ui/ChannelsPanel'
 import { CreateChannelDialog } from '../ui/CreateChannelDialog'
 import { useServersStore } from '../../servers/model/serversStore'
+import { serversApi } from '../../servers/api/serversApi'
 import { CreateServerDialog } from '../../servers/ui/CreateServerDialog'
 import { DiscoverServersView } from '../../servers/ui/DiscoverServersView'
 import { ServerSidebar } from '../../servers/ui/ServerSidebar'
+import type { ServerMember } from '../../servers/model/types'
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function normalizeUuid(value: string | undefined): string | null {
+  if (!value) {
+    return null
+  }
+
+  return UUID_PATTERN.test(value) ? value : null
+}
 
 export function ChannelsPage() {
   const navigate = useNavigate()
@@ -21,6 +33,7 @@ export function ChannelsPage() {
   const createServer = useServersStore((state) => state.createServer)
   const discoverServers = useServersStore((state) => state.discoverServers)
   const joinServer = useServersStore((state) => state.joinServer)
+  const serversLoading = useServersStore((state) => state.isLoading)
   const discoverResults = useServersStore((state) => state.discoverResults)
   const discoverLoading = useServersStore((state) => state.discoverLoading)
   const discoverError = useServersStore((state) => state.discoverError)
@@ -34,19 +47,11 @@ export function ChannelsPage() {
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
   const [discoverQuery, setDiscoverQuery] = useState('')
+  const [serverMembers, setServerMembers] = useState<ServerMember[]>([])
+  const [membersLoading, setMembersLoading] = useState(false)
 
-  const routeServerId = params.serverId ? Number(params.serverId) : null
-  const routeChannelId = params.channelId ? Number(params.channelId) : null
-
-  const normalizedServerId =
-    routeServerId != null && Number.isFinite(routeServerId)
-      ? routeServerId
-      : null
-
-  const normalizedChannelId =
-    routeChannelId != null && Number.isFinite(routeChannelId)
-      ? routeChannelId
-      : null
+  const normalizedServerId = normalizeUuid(params.serverId)
+  const normalizedChannelId = normalizeUuid(params.channelId)
 
   const channels = useMemo(() => {
     if (!normalizedServerId) {
@@ -78,15 +83,15 @@ export function ChannelsPage() {
   }, [token, loadServers])
 
   useEffect(() => {
-    if (!token || normalizedServerId == null) {
+    if (!token || normalizedServerId == null || !activeServer) {
       return
     }
 
     void loadChannels(normalizedServerId)
-  }, [token, normalizedServerId, loadChannels])
+  }, [token, normalizedServerId, activeServer, loadChannels])
 
   useEffect(() => {
-    if (!token || normalizedServerId == null || activeServer) {
+    if (!token || normalizedServerId == null || activeServer || serversLoading) {
       return
     }
 
@@ -96,7 +101,7 @@ export function ChannelsPage() {
     }
 
     navigate('/channels', { replace: true })
-  }, [token, normalizedServerId, activeServer, servers, navigate])
+  }, [token, normalizedServerId, activeServer, serversLoading, servers, navigate])
 
   useEffect(() => {
     if (!token || !activeServer) {
@@ -125,12 +130,51 @@ export function ChannelsPage() {
   ])
 
   useEffect(() => {
-    if (!token || activeServer) {
+    if (!token || activeServer || serversLoading || normalizedServerId != null) {
       return
     }
 
     void discoverServers('')
-  }, [token, activeServer, discoverServers])
+  }, [token, activeServer, serversLoading, normalizedServerId, discoverServers])
+
+  useEffect(() => {
+    if (!token || !activeServer) {
+      setServerMembers([])
+      setMembersLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setMembersLoading(true)
+
+    void serversApi
+      .getServerMembers(activeServer.id)
+      .then((members) => {
+        if (cancelled) {
+          return
+        }
+
+        setServerMembers(members)
+      })
+      .catch(() => {
+        if (cancelled) {
+          return
+        }
+
+        setServerMembers([])
+      })
+      .finally(() => {
+        if (cancelled) {
+          return
+        }
+
+        setMembersLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [token, activeServer])
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -171,6 +215,9 @@ export function ChannelsPage() {
                 username={username}
                 selectedChannel={selectedChannel}
                 currentRole={activeServer?.role ?? 'USER'}
+                serverMembers={serverMembers}
+                membersLoading={membersLoading}
+                membersCount={Math.max(activeServer.members, serverMembers.length)}
               />
             </>
           ) : (
@@ -181,7 +228,11 @@ export function ChannelsPage() {
                 await discoverServers(discoverQuery)
               }}
               onJoinServer={async (serverId) => {
-                await joinServer(serverId)
+                const joined = await joinServer(serverId)
+
+                if (joined) {
+                  navigate(`/channels/${joined.id}`)
+                }
               }}
               servers={discoverResults}
               loading={discoverLoading}

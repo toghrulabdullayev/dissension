@@ -3,13 +3,13 @@ import { channelsApi } from '../api/channelsApi'
 import type { Channel } from './types'
 
 type ChannelsState = {
-  channelsByServer: Record<number, Channel[]>
-  selectedChannelIdByServer: Record<number, number | null>
-  loadingByServer: Record<number, boolean>
-  errorByServer: Record<number, string | null>
-  loadChannels: (serverId: number) => Promise<void>
-  createChannel: (serverId: number, name: string, type: Channel['type']) => Promise<Channel | null>
-  selectChannel: (serverId: number, channelId: number) => void
+  channelsByServer: Record<string, Channel[]>
+  selectedChannelIdByServer: Record<string, string | null>
+  loadingByServer: Record<string, boolean>
+  errorByServer: Record<string, string | null>
+  loadChannels: (serverId: string) => Promise<void>
+  createChannel: (serverId: string, name: string, type: Channel['type']) => Promise<Channel | null>
+  selectChannel: (serverId: string, channelId: string) => void
   clearChannels: () => void
 }
 

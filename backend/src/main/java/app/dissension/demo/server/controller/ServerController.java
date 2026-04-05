@@ -2,11 +2,13 @@ package app.dissension.demo.server.controller;
 
 import app.dissension.demo.server.dto.CreateServerRequest;
 import app.dissension.demo.server.dto.DiscoverServerResponse;
+import app.dissension.demo.server.dto.ServerMemberResponse;
 import app.dissension.demo.server.dto.ServerResponse;
 import app.dissension.demo.server.service.ServerService;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,9 +45,18 @@ public class ServerController {
     }
 
     @PostMapping("/{serverId}/join")
-    public ResponseEntity<ServerResponse> joinServer(@PathVariable Long serverId, Principal principal) {
+    public ResponseEntity<ServerResponse> joinServer(@PathVariable UUID serverId, Principal principal) {
         ServerResponse joined = serverService.joinServer(serverId, principal.getName());
         return ResponseEntity.ok(joined);
+    }
+
+    @GetMapping("/{serverId}/members")
+    public ResponseEntity<List<ServerMemberResponse>> getServerMembers(
+        @PathVariable UUID serverId,
+        Principal principal
+    ) {
+        List<ServerMemberResponse> members = serverService.getServerMembers(serverId, principal.getName());
+        return ResponseEntity.ok(members);
     }
 
     @PostMapping

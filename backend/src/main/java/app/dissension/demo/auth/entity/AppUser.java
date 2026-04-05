@@ -21,6 +21,9 @@ public class AppUser {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Column(length = 2048)
+    private String imageUrl;
+
     protected AppUser() {
         // Required by JPA.
     }
@@ -28,6 +31,7 @@ public class AppUser {
     public AppUser(String username, String passwordHash) {
         this.username = username;
         this.passwordHash = passwordHash;
+        this.imageUrl = null;
     }
 
     public Long getId() {
@@ -48,5 +52,13 @@ public class AppUser {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

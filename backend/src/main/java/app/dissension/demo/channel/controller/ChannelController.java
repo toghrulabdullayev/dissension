@@ -6,6 +6,7 @@ import app.dissension.demo.channel.service.ChannelService;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +28,7 @@ public class ChannelController {
 
     @GetMapping
     public ResponseEntity<List<ChannelResponse>> getServerChannels(
-        @PathVariable Long serverId,
+        @PathVariable UUID serverId,
         Principal principal
     ) {
         List<ChannelResponse> channels = channelService.getChannelsForServer(serverId, principal.getName());
@@ -36,7 +37,7 @@ public class ChannelController {
 
     @PostMapping
     public ResponseEntity<ChannelResponse> createChannel(
-        @PathVariable Long serverId,
+        @PathVariable UUID serverId,
         Principal principal,
         @Valid @RequestBody CreateChannelRequest request
     ) {

@@ -10,7 +10,7 @@ type DiscoverServersViewProps = {
   query: string
   onQueryChange: (value: string) => void
   onSearch: () => Promise<void>
-  onJoinServer: (serverId: number) => Promise<void>
+  onJoinServer: (serverId: string) => Promise<void>
   servers: DiscoverServer[]
   loading: boolean
   error: string | null
@@ -37,7 +37,7 @@ export function DiscoverServersView({
   loading,
   error,
 }: DiscoverServersViewProps) {
-  const [joiningServerId, setJoiningServerId] = useState<number | null>(null)
+  const [joiningServerId, setJoiningServerId] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

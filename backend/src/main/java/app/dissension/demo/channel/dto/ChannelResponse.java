@@ -1,9 +1,10 @@
 package app.dissension.demo.channel.dto;
 
 import app.dissension.demo.channel.model.ChannelType;
+import java.util.UUID;
 
 public record ChannelResponse(
-    Long id,
+    UUID id,
     String name,
     ChannelType type,
     int position
