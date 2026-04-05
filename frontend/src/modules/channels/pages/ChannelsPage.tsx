@@ -49,6 +49,7 @@ export function ChannelsPage() {
   const clearChannels = useChannelsStore((state) => state.clearChannels)
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
+  const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(false)
   const [editingChannel, setEditingChannel] = useState<Channel | null>(null)
   const [discoverQuery, setDiscoverQuery] = useState('')
   const [serverMembers, setServerMembers] = useState<ServerMember[]>([])
@@ -203,7 +204,7 @@ export function ChannelsPage() {
           onLogout={handleLogout}
         />
 
-        <main className="flex flex-1">
+        <main className="flex min-w-0 flex-1">
           {activeServer ? (
             <>
               <ChannelsPanel
@@ -211,6 +212,8 @@ export function ChannelsPage() {
                 serverName={activeServer.name}
                 hasActiveServer={true}
                 selectedChannelId={normalizedChannelId}
+                panelCollapsed={channelsPanelCollapsed}
+                onPanelCollapsedChange={setChannelsPanelCollapsed}
                 onSelectChannel={(channelId) => {
                   navigate(`/channels/${activeServer.id}/${channelId}`)
                 }}
@@ -263,6 +266,8 @@ export function ChannelsPage() {
                 serverMembers={serverMembers}
                 membersLoading={membersLoading}
                 membersCount={serverMembers.length > 0 ? serverMembers.length : activeServer.members}
+                channelsPanelCollapsed={channelsPanelCollapsed}
+                onToggleChannelsPanel={() => setChannelsPanelCollapsed((value) => !value)}
                 onUpdateMemberRole={async (targetUsername, role) => {
                   const updatedMembers = await serversApi.updateServerMemberRole(activeServer.id, targetUsername, role)
                   setServerMembers(updatedMembers)

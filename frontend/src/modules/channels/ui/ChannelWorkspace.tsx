@@ -29,6 +29,8 @@ type ChannelWorkspaceProps = {
   serverMembers: ServerMember[]
   membersLoading: boolean
   membersCount: number
+  channelsPanelCollapsed: boolean
+  onToggleChannelsPanel: () => void
   onUpdateMemberRole: (username: string, role: 'ADMIN' | 'USER') => Promise<void>
   onBanMember: (username: string) => Promise<void>
 }
@@ -40,6 +42,8 @@ export function ChannelWorkspace({
   serverMembers,
   membersLoading,
   membersCount,
+  channelsPanelCollapsed,
+  onToggleChannelsPanel,
   onUpdateMemberRole,
   onBanMember,
 }: ChannelWorkspaceProps) {
@@ -174,35 +178,37 @@ export function ChannelWorkspace({
   }
 
   return (
-    <section className="flex flex-1 overflow-hidden">
-      <div className="flex min-w-0 flex-1 flex-col p-6">
-        <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Selected Channel</p>
-              <p className="mt-1 text-lg font-semibold">{selectedChannel?.name ?? 'No channel selected'}</p>
-              {selectedChannel ? (
-                <p className="text-sm text-slate-500">Type: {selectedChannel.type}</p>
-              ) : null}
-              {selectedChannel?.type === 'INFO' ? (
-                <p className="text-sm text-slate-500">
-                  Info channels are writable only by owners, admins, and moderators.
-                </p>
-              ) : null}
-              <p className="text-sm text-slate-500">Signed in as: {username ?? 'User'}</p>
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600">
-              <span>{shownMembersCount} members</span>
+    <>
+      <section className="flex min-w-0 flex-1 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col px-6 pb-6 pt-0">
+        <div className="-mx-6 mb-4 shrink-0 border-b border-slate-200 px-6 pb-3 pt-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               <button
                 type="button"
-                onClick={toggleMembersSidebar}
-                className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs font-medium transition hover:bg-slate-100"
+                onClick={onToggleChannelsPanel}
+                aria-label={channelsPanelCollapsed ? 'Expand channels panel' : 'Collapse channels panel'}
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
               >
-                {membersSidebarCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                {membersSidebarCollapsed ? 'Show' : 'Hide'}
+                {channelsPanelCollapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
               </button>
+
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+                {selectedChannel?.name ?? 'No channel selected'}
+              </p>
             </div>
+
+            <button
+              type="button"
+              onClick={toggleMembersSidebar}
+              className="ml-auto inline-flex shrink-0 items-center rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+            >
+              Members
+            </button>
           </div>
         </div>
 
@@ -303,8 +309,11 @@ export function ChannelWorkspace({
             style={{ width: `${membersSidebarWidth}px` }}
           >
             <div className="flex h-full flex-col">
-              <div className="border-b border-slate-200 px-4 py-3">
-                <h3 className="text-sm font-semibold text-slate-700">Members</h3>
+              <div className="border-b border-slate-200 px-4 pb-3 pt-[17.5px]">
+                <div className="flex min-h-6 items-center gap-2">
+                  <h3 className="text-sm font-semibold text-slate-800">Members</h3>
+                  <span className="text-xs text-slate-500">{shownMembersCount}</span>
+                </div>
               </div>
 
               <div className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden p-3">
@@ -444,6 +453,7 @@ export function ChannelWorkspace({
           </aside>
         </>
       ) : null}
-    </section>
+      </section>
+    </>
   )
 }
