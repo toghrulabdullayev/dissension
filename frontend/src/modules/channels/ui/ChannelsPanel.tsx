@@ -17,14 +17,22 @@ function getChannelsPanelMaxWidth(viewportWidth: number) {
   }
 
   if (viewportWidth >= 1280) {
-    return 380
-  }
-
-  if (viewportWidth >= 1024) {
     return 340
   }
 
-  return 300
+  if (viewportWidth >= 1160) {
+    return 280
+  }
+
+  if (viewportWidth >= 1024) {
+    return 260
+  }
+
+  if (viewportWidth >= 900) {
+    return 240
+  }
+
+  return 220
 }
 
 function getChannelsPanelDrawerWidth(viewportWidth: number) {

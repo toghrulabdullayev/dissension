@@ -32,14 +32,22 @@ function getMembersSidebarMaxWidth(viewportWidth: number) {
   }
 
   if (viewportWidth >= 1280) {
-    return 360
-  }
-
-  if (viewportWidth >= 1024) {
     return 320
   }
 
-  return 280
+  if (viewportWidth >= 1160) {
+    return 260
+  }
+
+  if (viewportWidth >= 1024) {
+    return 240
+  }
+
+  if (viewportWidth >= 900) {
+    return 220
+  }
+
+  return 200
 }
 
 function getMembersSidebarDrawerWidth(viewportWidth: number) {
