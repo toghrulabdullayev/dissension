@@ -9,6 +9,13 @@ type ChannelsState = {
   errorByServer: Record<string, string | null>
   loadChannels: (serverId: string) => Promise<void>
   createChannel: (serverId: string, name: string, type: Channel['type']) => Promise<Channel | null>
+  updateChannel: (
+    serverId: string,
+    channelId: string,
+    name: string,
+    type: Channel['type'],
+  ) => Promise<Channel | null>
+  deleteChannel: (serverId: string, channelId: string) => Promise<void>
   selectChannel: (serverId: string, channelId: string) => void
   clearChannels: () => void
 }
@@ -76,6 +83,56 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
     }))
 
     return createdChannel
+  },
+  updateChannel: async (serverId, channelId, name, type) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      return null
+    }
+
+    const updatedChannel = await channelsApi.updateChannel(serverId, channelId, {
+      name: trimmedName,
+      type,
+    })
+
+    set((state) => {
+      const existingChannels = state.channelsByServer[serverId] ?? []
+
+      return {
+        channelsByServer: {
+          ...state.channelsByServer,
+          [serverId]: existingChannels.map((channel) =>
+            channel.id === channelId ? updatedChannel : channel,
+          ),
+        },
+      }
+    })
+
+    return updatedChannel
+  },
+  deleteChannel: async (serverId, channelId) => {
+    await channelsApi.deleteChannel(serverId, channelId)
+
+    set((state) => {
+      const existingChannels = state.channelsByServer[serverId] ?? []
+      const nextChannels = existingChannels.filter((channel) => channel.id !== channelId)
+      const currentSelection = state.selectedChannelIdByServer[serverId] ?? null
+
+      const nextSelection = currentSelection === channelId
+        ? (nextChannels[0]?.id ?? null)
+        : currentSelection
+
+      return {
+        channelsByServer: {
+          ...state.channelsByServer,
+          [serverId]: nextChannels,
+        },
+        selectedChannelIdByServer: {
+          ...state.selectedChannelIdByServer,
+          [serverId]: nextSelection,
+        },
+      }
+    })
   },
   selectChannel: (serverId, channelId) => {
     set((state) => ({

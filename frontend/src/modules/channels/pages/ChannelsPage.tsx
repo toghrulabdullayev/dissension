@@ -11,6 +11,7 @@ import { CreateServerDialog } from '../../servers/ui/CreateServerDialog'
 import { DiscoverServersView } from '../../servers/ui/DiscoverServersView'
 import { ServerSidebar } from '../../servers/ui/ServerSidebar'
 import type { ServerMember } from '../../servers/model/types'
+import type { Channel } from '../model/types'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -43,9 +44,12 @@ export function ChannelsPage() {
   const channelsByServer = useChannelsStore((state) => state.channelsByServer)
   const loadChannels = useChannelsStore((state) => state.loadChannels)
   const createChannel = useChannelsStore((state) => state.createChannel)
+  const updateChannel = useChannelsStore((state) => state.updateChannel)
+  const deleteChannel = useChannelsStore((state) => state.deleteChannel)
   const clearChannels = useChannelsStore((state) => state.clearChannels)
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
+  const [editingChannel, setEditingChannel] = useState<Channel | null>(null)
   const [discoverQuery, setDiscoverQuery] = useState('')
   const [serverMembers, setServerMembers] = useState<ServerMember[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
@@ -210,7 +214,37 @@ export function ChannelsPage() {
                 onSelectChannel={(channelId) => {
                   navigate(`/channels/${activeServer.id}/${channelId}`)
                 }}
-                onOpenCreateChannel={() => setIsCreateChannelOpen(true)}
+                onOpenCreateChannel={() => {
+                  setEditingChannel(null)
+                  setIsCreateChannelOpen(true)
+                }}
+                canManageChannels={activeServer.role === 'OWNER'}
+                onOpenUpdateChannel={(channel) => {
+                  setIsCreateChannelOpen(false)
+                  setEditingChannel(channel)
+                }}
+                onDeleteChannel={async (channel) => {
+                  const fallbackChannel = channels
+                    .slice()
+                    .sort((a, b) => a.position - b.position)
+                    .find((candidate) => candidate.id !== channel.id)
+
+                  await deleteChannel(activeServer.id, channel.id)
+
+                  if (editingChannel?.id === channel.id) {
+                    setEditingChannel(null)
+                  }
+
+                  if (normalizedChannelId === channel.id) {
+                    if (fallbackChannel) {
+                      navigate(`/channels/${activeServer.id}/${fallbackChannel.id}`, {
+                        replace: true,
+                      })
+                    } else {
+                      navigate(`/channels/${activeServer.id}`, { replace: true })
+                    }
+                  }
+                }}
                 onLeaveServer={async () => {
                   try {
                     await serversApi.leaveServer(activeServer.id)
@@ -273,16 +307,27 @@ export function ChannelsPage() {
       />
 
       <CreateChannelDialog
-        open={isCreateChannelOpen}
-        onClose={() => setIsCreateChannelOpen(false)}
-        onCreateChannel={async (name, type) => {
+        open={isCreateChannelOpen || editingChannel != null}
+        onClose={() => {
+          setIsCreateChannelOpen(false)
+          setEditingChannel(null)
+        }}
+        mode={editingChannel ? 'update' : 'create'}
+        initialName={editingChannel?.name}
+        initialType={editingChannel?.type}
+        onSubmitChannel={async (name, type) => {
           if (!activeServer) {
             return
           }
 
-          const created = await createChannel(activeServer.id, name, type)
-          if (created) {
-            navigate(`/channels/${activeServer.id}/${created.id}`)
+          if (editingChannel) {
+            await updateChannel(activeServer.id, editingChannel.id, name, type)
+            return
+          }
+
+          const createdChannel = await createChannel(activeServer.id, name, type)
+          if (createdChannel) {
+            navigate(`/channels/${activeServer.id}/${createdChannel.id}`)
           }
         }}
       />

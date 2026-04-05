@@ -35,7 +35,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(body || `Request failed with status ${response.status}`)
   }
 
-  return (await response.json()) as T
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  const raw = await response.text()
+  if (!raw) {
+    return undefined as T
+  }
+
+  return JSON.parse(raw) as T
 }
 
 export const channelsApi = {
@@ -44,5 +53,14 @@ export const channelsApi = {
     request<Channel>(`/api/servers/${serverId}/channels`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  updateChannel: (serverId: string, channelId: string, payload: CreateChannelPayload) =>
+    request<Channel>(`/api/servers/${serverId}/channels/${channelId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  deleteChannel: (serverId: string, channelId: string) =>
+    request<void>(`/api/servers/${serverId}/channels/${channelId}`, {
+      method: 'DELETE',
     }),
 }

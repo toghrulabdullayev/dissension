@@ -55,6 +55,43 @@ public class ChannelService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public ChannelResponse updateChannel(
+        UUID serverId,
+        UUID channelId,
+        String username,
+        CreateChannelRequest request
+    ) {
+        ServerMembership membership = serverService.requireMembership(serverId, username);
+
+        if (membership.getRole() != ServerRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can update channels");
+        }
+
+        AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+
+        channel.setName(request.name().trim());
+        channel.setType(request.type());
+
+        AppChannel saved = appChannelRepository.save(channel);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void deleteChannel(UUID serverId, UUID channelId, String username) {
+        ServerMembership membership = serverService.requireMembership(serverId, username);
+
+        if (membership.getRole() != ServerRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can delete channels");
+        }
+
+        AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+
+        appChannelRepository.delete(channel);
+    }
+
     private ChannelResponse toResponse(AppChannel channel) {
         return new ChannelResponse(
             channel.getId(),

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Button } from '../../../shared/ui/button'
 import {
@@ -15,18 +15,35 @@ import type { ChannelType } from '../model/types'
 type CreateChannelDialogProps = {
   open: boolean
   onClose: () => void
-  onCreateChannel: (name: string, type: ChannelType) => Promise<void>
+  mode?: 'create' | 'update'
+  initialName?: string
+  initialType?: ChannelType
+  onSubmitChannel: (name: string, type: ChannelType) => Promise<void>
 }
 
 export function CreateChannelDialog({
   open,
   onClose,
-  onCreateChannel,
+  mode = 'create',
+  initialName,
+  initialType,
+  onSubmitChannel,
 }: CreateChannelDialogProps) {
   const [name, setName] = useState('')
   const [type, setType] = useState<ChannelType>('CHAT')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    setName(initialName ?? '')
+    setType(initialType ?? 'CHAT')
+    setError('')
+    setIsSubmitting(false)
+  }, [open, initialName, initialType])
 
   if (!open) {
     return null
@@ -49,25 +66,35 @@ export function CreateChannelDialog({
     setIsSubmitting(true)
 
     try {
-      await onCreateChannel(trimmed, type)
+      await onSubmitChannel(trimmed, type)
       setName('')
       setType('CHAT')
       setError('')
       onClose()
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Failed to create channel.')
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : mode === 'update'
+            ? 'Failed to update channel.'
+            : 'Failed to create channel.',
+      )
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const isUpdateMode = mode === 'update'
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">Create channel</CardTitle>
+          <CardTitle className="text-xl">{isUpdateMode ? 'Update channel' : 'Create channel'}</CardTitle>
           <CardDescription>
-            Define the channel name and type. Call channels will host voice/video/screen sharing later.
+            {isUpdateMode
+              ? 'Update the channel name and type.'
+              : 'Define the channel name and type. Call channels will host voice/video/screen sharing later.'}
           </CardDescription>
         </CardHeader>
 
@@ -111,7 +138,7 @@ export function CreateChannelDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create'}
+                {isSubmitting ? (isUpdateMode ? 'Updating...' : 'Creating...') : isUpdateMode ? 'Update' : 'Create'}
               </Button>
             </div>
           </form>

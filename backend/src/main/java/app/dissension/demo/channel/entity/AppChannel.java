@@ -62,8 +62,16 @@ public class AppChannel {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public ChannelType getType() {
         return type;
+    }
+
+    public void setType(ChannelType type) {
+        this.type = type;
     }
 
     public int getPosition() {

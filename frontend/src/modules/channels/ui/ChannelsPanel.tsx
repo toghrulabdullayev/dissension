@@ -1,4 +1,5 @@
-import { Hash, Info, Phone, Plus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Hash, Info, MoreHorizontal, Phone, Plus } from 'lucide-react'
 import type { Channel, ChannelType } from '../model/types'
 
 type ChannelsPanelProps = {
@@ -8,6 +9,9 @@ type ChannelsPanelProps = {
   selectedChannelId: string | null
   onSelectChannel: (channelId: string) => void
   onOpenCreateChannel: () => void
+  canManageChannels?: boolean
+  onOpenUpdateChannel?: (channel: Channel) => void
+  onDeleteChannel?: (channel: Channel) => Promise<void>
   onLeaveServer?: () => void
 }
 
@@ -42,8 +46,43 @@ export function ChannelsPanel({
   selectedChannelId,
   onSelectChannel,
   onOpenCreateChannel,
+  canManageChannels = false,
+  onOpenUpdateChannel,
+  onDeleteChannel,
   onLeaveServer,
 }: ChannelsPanelProps) {
+  const [openChannelMenuFor, setOpenChannelMenuFor] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (openChannelMenuFor == null) {
+      return
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-channel-menu="true"]')) {
+        return
+      }
+
+      setOpenChannelMenuFor(null)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenChannelMenuFor(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [openChannelMenuFor])
+
   return (
     <section className="flex h-screen w-72 flex-col border-r border-slate-200 bg-white">
       <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
@@ -84,27 +123,104 @@ export function ChannelsPanel({
               .sort((a, b) => a.position - b.position)
               .map((channel) => {
                 const active = channel.id === selectedChannelId
+                const menuOpen = openChannelMenuFor === channel.id
 
                 return (
-                  <button
-                    key={channel.id}
-                    type="button"
-                    onClick={() => onSelectChannel(channel.id)}
-                    className={[
-                      'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
-                      active
-                        ? 'bg-slate-900 text-white'
-                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
-                    ].join(' ')}
-                  >
-                    {channelIcon(channel.type)}
-                    <span className="truncate">{channel.name}</span>
-                    <span className="ml-auto text-[10px] uppercase tracking-wide opacity-75">
-                      {channelTypeLabel(channel.type)}
-                    </span>
-                  </button>
+                  <div key={channel.id} className="group relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenChannelMenuFor(null)
+                        onSelectChannel(channel.id)
+                      }}
+                      className={[
+                        'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
+                        active
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                      ].join(' ')}
+                    >
+                      {channelIcon(channel.type)}
+                      <span className="truncate">{channel.name}</span>
+                      <span
+                        className={[
+                          'ml-auto text-[10px] uppercase tracking-wide transition',
+                          canManageChannels
+                            ? (menuOpen ? 'opacity-0' : 'opacity-75 group-hover:opacity-0')
+                            : 'opacity-75',
+                        ].join(' ')}
+                      >
+                        {channelTypeLabel(channel.type)}
+                      </span>
+                    </button>
+
+                    {canManageChannels ? (
+                      <button
+                        type="button"
+                        data-channel-menu="true"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setActionError(null)
+                          setOpenChannelMenuFor((value) => (value === channel.id ? null : channel.id))
+                        }}
+                        className={[
+                          'absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border transition',
+                          menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                          active
+                            ? 'border-slate-700 text-slate-200 hover:bg-slate-800'
+                            : 'border-slate-200 text-slate-500 hover:bg-slate-100',
+                        ].join(' ')}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    ) : null}
+
+                    {menuOpen ? (
+                      <div
+                        data-channel-menu="true"
+                        className="absolute right-2 top-10 z-20 w-40 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+                      >
+                        <button
+                          type="button"
+                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                          onClick={() => {
+                            onOpenUpdateChannel?.(channel)
+                            setOpenChannelMenuFor(null)
+                          }}
+                        >
+                          Update channel
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
+                          onClick={async () => {
+                            if (!onDeleteChannel) {
+                              setOpenChannelMenuFor(null)
+                              return
+                            }
+
+                            setActionError(null)
+
+                            try {
+                              await onDeleteChannel(channel)
+                            } catch (error) {
+                              setActionError(
+                                error instanceof Error ? error.message : `Failed to delete ${channel.name}`,
+                              )
+                            }
+
+                            setOpenChannelMenuFor(null)
+                          }}
+                        >
+                          Delete channel
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 )
               })}
+
+            {actionError ? <p className="pt-2 text-xs text-red-600">{actionError}</p> : null}
           </div>
         )}
       </div>

@@ -53,8 +53,12 @@ export function ChannelWorkspace({
   const resizeStartXRef = useRef(0)
   const resizeStartWidthRef = useRef(MEMBERS_SIDEBAR_DEFAULT_WIDTH)
 
+  const normalizedUsername = (username ?? '').toLowerCase()
+  const effectiveCurrentRole =
+    serverMembers.find((member) => member.username.toLowerCase() === normalizedUsername)?.role ?? currentRole
+
   const canWriteInInfoChannel =
-    currentRole === 'OWNER' || currentRole === 'ADMIN' || currentRole === 'MOD'
+    effectiveCurrentRole === 'OWNER' || effectiveCurrentRole === 'ADMIN' || effectiveCurrentRole === 'MOD'
 
   useEffect(() => {
     if (openMemberMenuFor == null) {
@@ -133,11 +137,11 @@ export function ChannelWorkspace({
   ]
 
   const canChangeRoleForMember = (member: ServerMember) => {
-    if (currentRole !== 'OWNER') {
+    if (effectiveCurrentRole !== 'OWNER') {
       return false
     }
 
-    if ((username ?? '').toLowerCase() === member.username.toLowerCase()) {
+    if (normalizedUsername === member.username.toLowerCase()) {
       return false
     }
 
@@ -145,16 +149,16 @@ export function ChannelWorkspace({
   }
 
   const canBanMember = (member: ServerMember) => {
-    const isSelf = (username ?? '').toLowerCase() === member.username.toLowerCase()
+    const isSelf = normalizedUsername === member.username.toLowerCase()
     if (isSelf || member.role === 'OWNER') {
       return false
     }
 
-    if (currentRole === 'OWNER') {
+    if (effectiveCurrentRole === 'OWNER') {
       return true
     }
 
-    if (currentRole === 'ADMIN') {
+    if (effectiveCurrentRole === 'ADMIN') {
       return member.role === 'USER'
     }
 
