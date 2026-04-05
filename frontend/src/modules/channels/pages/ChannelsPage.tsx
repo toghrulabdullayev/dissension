@@ -204,6 +204,7 @@ export function ChannelsPage() {
             <>
               <ChannelsPanel
                 channels={channels}
+                serverName={activeServer.name}
                 hasActiveServer={true}
                 selectedChannelId={normalizedChannelId}
                 onSelectChannel={(channelId) => {
@@ -217,7 +218,15 @@ export function ChannelsPage() {
                 currentRole={activeServer?.role ?? 'USER'}
                 serverMembers={serverMembers}
                 membersLoading={membersLoading}
-                membersCount={Math.max(activeServer.members, serverMembers.length)}
+                membersCount={serverMembers.length > 0 ? serverMembers.length : activeServer.members}
+                onUpdateMemberRole={async (targetUsername, role) => {
+                  const updatedMembers = await serversApi.updateServerMemberRole(activeServer.id, targetUsername, role)
+                  setServerMembers(updatedMembers)
+                }}
+                onBanMember={async (targetUsername) => {
+                  const updatedMembers = await serversApi.banServerMember(activeServer.id, targetUsername)
+                  setServerMembers(updatedMembers)
+                }}
               />
             </>
           ) : (

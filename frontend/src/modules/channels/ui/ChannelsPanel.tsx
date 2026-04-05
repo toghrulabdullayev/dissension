@@ -3,10 +3,12 @@ import type { Channel, ChannelType } from '../model/types'
 
 type ChannelsPanelProps = {
   channels: Channel[]
+  serverName: string
   hasActiveServer: boolean
   selectedChannelId: string | null
   onSelectChannel: (channelId: string) => void
   onOpenCreateChannel: () => void
+  onLeaveServer?: () => void
 }
 
 function channelIcon(type: ChannelType) {
@@ -35,58 +37,77 @@ function channelTypeLabel(type: ChannelType) {
 
 export function ChannelsPanel({
   channels,
+  serverName,
   hasActiveServer,
   selectedChannelId,
   onSelectChannel,
   onOpenCreateChannel,
+  onLeaveServer,
 }: ChannelsPanelProps) {
   return (
-    <section className="w-72 border-r border-slate-200 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
-        <button
-          type="button"
-          onClick={onOpenCreateChannel}
-          disabled={!hasActiveServer}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
-        >
-          <Plus className="h-3 w-3" />
-          New
-        </button>
+    <section className="flex h-screen w-72 flex-col border-r border-slate-200 bg-white">
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-semibold text-slate-800">{serverName}</p>
+          <button
+            type="button"
+            onClick={() => onLeaveServer?.()}
+            className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+          >
+            Leave
+          </button>
+        </div>
+
+        <div className="-mx-4 my-3 border-t border-slate-200" />
+
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
+          <button
+            type="button"
+            onClick={onOpenCreateChannel}
+            disabled={!hasActiveServer}
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+          >
+            <Plus className="h-3 w-3" />
+            New
+          </button>
+        </div>
       </div>
 
-      {channels.length === 0 ? (
-        <p className="text-sm text-slate-500">No channels in this server yet.</p>
-      ) : (
-        <div className="space-y-1">
-          {channels
-            .slice()
-            .sort((a, b) => a.position - b.position)
-            .map((channel) => {
-              const active = channel.id === selectedChannelId
+      <div className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden p-4">
+        {channels.length === 0 ? (
+          <p className="text-sm text-slate-500">No channels in this server yet.</p>
+        ) : (
+          <div className="space-y-1">
+            {channels
+              .slice()
+              .sort((a, b) => a.position - b.position)
+              .map((channel) => {
+                const active = channel.id === selectedChannelId
 
-              return (
-                <button
-                  key={channel.id}
-                  type="button"
-                  onClick={() => onSelectChannel(channel.id)}
-                  className={[
-                    'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
-                    active
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
-                  ].join(' ')}
-                >
-                  {channelIcon(channel.type)}
-                  <span className="truncate">{channel.name}</span>
-                  <span className="ml-auto text-[10px] uppercase tracking-wide opacity-75">
-                    {channelTypeLabel(channel.type)}
-                  </span>
-                </button>
-              )
-            })}
-        </div>
-      )}
+                return (
+                  <button
+                    key={channel.id}
+                    type="button"
+                    onClick={() => onSelectChannel(channel.id)}
+                    className={[
+                      'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
+                      active
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                    ].join(' ')}
+                  >
+                    {channelIcon(channel.type)}
+                    <span className="truncate">{channel.name}</span>
+                    <span className="ml-auto text-[10px] uppercase tracking-wide opacity-75">
+                      {channelTypeLabel(channel.type)}
+                    </span>
+                  </button>
+                )
+              })}
+          </div>
+        )}
+      </div>
     </section>
   )
 }

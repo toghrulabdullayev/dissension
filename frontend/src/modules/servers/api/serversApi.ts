@@ -57,6 +57,15 @@ export const serversApi = {
       method: 'POST',
     }),
   getServerMembers: (serverId: string) => request<ServerMember[]>(`/api/servers/${serverId}/members`),
+  updateServerMemberRole: (serverId: string, memberUsername: string, role: 'ADMIN' | 'USER') =>
+    request<ServerMember[]>(`/api/servers/${serverId}/members/${encodeURIComponent(memberUsername)}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+  banServerMember: (serverId: string, memberUsername: string) =>
+    request<ServerMember[]>(`/api/servers/${serverId}/members/${encodeURIComponent(memberUsername)}`, {
+      method: 'DELETE',
+    }),
   createServer: (payload: CreateServerPayload) =>
     request<Server>('/api/servers', {
       method: 'POST',

@@ -4,6 +4,7 @@ import app.dissension.demo.server.dto.CreateServerRequest;
 import app.dissension.demo.server.dto.DiscoverServerResponse;
 import app.dissension.demo.server.dto.ServerMemberResponse;
 import app.dissension.demo.server.dto.ServerResponse;
+import app.dissension.demo.server.dto.UpdateServerMemberRoleRequest;
 import app.dissension.demo.server.service.ServerService;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -13,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +59,32 @@ public class ServerController {
         Principal principal
     ) {
         List<ServerMemberResponse> members = serverService.getServerMembers(serverId, principal.getName());
+        return ResponseEntity.ok(members);
+    }
+
+    @PatchMapping("/{serverId}/members/{memberUsername}/role")
+    public ResponseEntity<List<ServerMemberResponse>> updateServerMemberRole(
+        @PathVariable UUID serverId,
+        @PathVariable String memberUsername,
+        Principal principal,
+        @Valid @RequestBody UpdateServerMemberRoleRequest request
+    ) {
+        List<ServerMemberResponse> members = serverService.updateServerMemberRole(
+            serverId,
+            principal.getName(),
+            memberUsername,
+            request.role()
+        );
+        return ResponseEntity.ok(members);
+    }
+
+    @DeleteMapping("/{serverId}/members/{memberUsername}")
+    public ResponseEntity<List<ServerMemberResponse>> banServerMember(
+        @PathVariable UUID serverId,
+        @PathVariable String memberUsername,
+        Principal principal
+    ) {
+        List<ServerMemberResponse> members = serverService.banServerMember(serverId, principal.getName(), memberUsername);
         return ResponseEntity.ok(members);
     }
 
