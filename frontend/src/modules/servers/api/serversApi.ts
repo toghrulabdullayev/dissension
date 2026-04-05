@@ -35,7 +35,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(body || `Request failed with status ${response.status}`)
   }
 
-  return (await response.json()) as T
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  const raw = await response.text()
+  if (!raw) {
+    return undefined as T
+  }
+
+  return JSON.parse(raw) as T
 }
 
 export const serversApi = {
@@ -55,6 +64,10 @@ export const serversApi = {
   joinServer: (serverId: string) =>
     request<Server>(`/api/servers/${serverId}/join`, {
       method: 'POST',
+    }),
+  leaveServer: (serverId: string) =>
+    request<void>(`/api/servers/${serverId}/leave`, {
+      method: 'DELETE',
     }),
   getServerMembers: (serverId: string) => request<ServerMember[]>(`/api/servers/${serverId}/members`),
   updateServerMemberRole: (serverId: string, memberUsername: string, role: 'ADMIN' | 'USER') =>

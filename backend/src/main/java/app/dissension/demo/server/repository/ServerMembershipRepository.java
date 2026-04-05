@@ -17,5 +17,7 @@ public interface ServerMembershipRepository extends JpaRepository<ServerMembersh
 
     Optional<ServerMembership> findByServerIdAndRole(UUID serverId, ServerRole role);
 
+    Optional<ServerMembership> findFirstByServerIdAndRoleOrderByIdAsc(UUID serverId, ServerRole role);
+
     long countByServerId(UUID serverId);
 }

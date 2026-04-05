@@ -9,5 +9,7 @@ public interface AppChannelRepository extends JpaRepository<AppChannel, UUID> {
 
     List<AppChannel> findByServerIdOrderByPositionAsc(UUID serverId);
 
+    void deleteAllByServerId(UUID serverId);
+
     long countByServerId(UUID serverId);
 }

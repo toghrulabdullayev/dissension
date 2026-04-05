@@ -132,6 +132,35 @@ export function ChannelWorkspace({
     { title: 'User', members: userMembers },
   ]
 
+  const canChangeRoleForMember = (member: ServerMember) => {
+    if (currentRole !== 'OWNER') {
+      return false
+    }
+
+    if ((username ?? '').toLowerCase() === member.username.toLowerCase()) {
+      return false
+    }
+
+    return member.role !== 'OWNER'
+  }
+
+  const canBanMember = (member: ServerMember) => {
+    const isSelf = (username ?? '').toLowerCase() === member.username.toLowerCase()
+    if (isSelf || member.role === 'OWNER') {
+      return false
+    }
+
+    if (currentRole === 'OWNER') {
+      return true
+    }
+
+    if (currentRole === 'ADMIN') {
+      return member.role === 'USER'
+    }
+
+    return false
+  }
+
   const getRoleActionLabel = (member: ServerMember) => {
     if (member.role === 'USER') {
       return `Make ${member.username} admin`
@@ -301,6 +330,9 @@ export function ChannelWorkspace({
                           <ul className="space-y-2">
                             {group.members.map((member) => {
                               const menuOpen = openMemberMenuFor === member.username
+                              const canChangeRole = canChangeRoleForMember(member)
+                              const canBan = canBanMember(member)
+                              const showMenuTrigger = canChangeRole || canBan
 
                               return (
                                 <li
@@ -323,69 +355,75 @@ export function ChannelWorkspace({
                                     {member.username}
                                   </p>
 
-                                  <button
-                                    type="button"
-                                    data-member-menu="true"
-                                    onClick={(event) => {
-                                      event.stopPropagation()
-                                      setOpenMemberMenuFor((value) =>
-                                        value === member.username ? null : member.username,
-                                      )
-                                    }}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </button>
+                                  {showMenuTrigger ? (
+                                    <button
+                                      type="button"
+                                      data-member-menu="true"
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        setOpenMemberMenuFor((value) =>
+                                          value === member.username ? null : member.username,
+                                        )
+                                      }}
+                                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </button>
+                                  ) : null}
 
                                   {menuOpen ? (
                                     <div
                                       data-member-menu="true"
                                       className="absolute right-2 top-10 z-20 w-44 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
                                     >
-                                      <button
-                                        type="button"
-                                        className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
-                                        onClick={async () => {
-                                          setMembersActionError(null)
+                                      {canChangeRole ? (
+                                        <button
+                                          type="button"
+                                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                                          onClick={async () => {
+                                            setMembersActionError(null)
 
-                                          const nextRole = member.role === 'USER' ? 'ADMIN' : 'USER'
+                                            const nextRole = member.role === 'USER' ? 'ADMIN' : 'USER'
 
-                                          try {
-                                            await onUpdateMemberRole(member.username, nextRole)
-                                          } catch (error) {
-                                            setMembersActionError(
-                                              error instanceof Error
-                                                ? error.message
-                                                : 'Failed to update member role',
-                                            )
-                                          }
+                                            try {
+                                              await onUpdateMemberRole(member.username, nextRole)
+                                            } catch (error) {
+                                              setMembersActionError(
+                                                error instanceof Error
+                                                  ? error.message
+                                                  : 'Failed to update member role',
+                                              )
+                                            }
 
-                                          setOpenMemberMenuFor(null)
-                                        }}
-                                      >
-                                        {getRoleActionLabel(member)}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
-                                        onClick={async () => {
-                                          setMembersActionError(null)
+                                            setOpenMemberMenuFor(null)
+                                          }}
+                                        >
+                                          {getRoleActionLabel(member)}
+                                        </button>
+                                      ) : null}
+                                      {canBan ? (
+                                        <button
+                                          type="button"
+                                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
+                                          onClick={async () => {
+                                            setMembersActionError(null)
 
-                                          try {
-                                            await onBanMember(member.username)
-                                          } catch (error) {
-                                            setMembersActionError(
-                                              error instanceof Error
-                                                ? error.message
-                                                : `Failed to ban ${member.username}`,
-                                            )
-                                          }
+                                            try {
+                                              await onBanMember(member.username)
+                                            } catch (error) {
+                                              setMembersActionError(
+                                                error instanceof Error
+                                                  ? error.message
+                                                  : `Failed to ban ${member.username}`,
+                                              )
+                                            }
 
-                                          setOpenMemberMenuFor(null)
-                                        }}
-                                      >
-                                        Ban {member.username}
-                                      </button>
+                                            setOpenMemberMenuFor(null)
+                                          }}
+                                        >
+                                          Ban {member.username}
+                                        </button>
+                                      ) : null}
                                     </div>
                                   ) : null}
                                 </li>

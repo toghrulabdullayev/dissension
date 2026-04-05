@@ -2,6 +2,7 @@ package app.dissension.demo.server.service;
 
 import app.dissension.demo.auth.entity.AppUser;
 import app.dissension.demo.auth.repository.AppUserRepository;
+import app.dissension.demo.channel.repository.AppChannelRepository;
 import app.dissension.demo.server.dto.CreateServerRequest;
 import app.dissension.demo.server.dto.DiscoverServerResponse;
 import app.dissension.demo.server.dto.ServerMemberResponse;
@@ -23,15 +24,18 @@ import org.springframework.web.server.ResponseStatusException;
 public class ServerService {
 
     private final AppServerRepository appServerRepository;
+    private final AppChannelRepository appChannelRepository;
     private final ServerMembershipRepository serverMembershipRepository;
     private final AppUserRepository appUserRepository;
 
     public ServerService(
         AppServerRepository appServerRepository,
+        AppChannelRepository appChannelRepository,
         ServerMembershipRepository serverMembershipRepository,
         AppUserRepository appUserRepository
     ) {
         this.appServerRepository = appServerRepository;
+        this.appChannelRepository = appChannelRepository;
         this.serverMembershipRepository = serverMembershipRepository;
         this.appUserRepository = appUserRepository;
     }
@@ -98,6 +102,37 @@ public class ServerService {
         return toResponse(savedMembership);
     }
 
+    @Transactional
+    public void leaveServer(UUID serverId, String username) {
+        ServerMembership leavingMembership = requireMembership(serverId, username);
+        long membersBeforeLeave = serverMembershipRepository.countByServerId(serverId);
+
+        if (membersBeforeLeave == 1L) {
+            serverMembershipRepository.delete(leavingMembership);
+            appChannelRepository.deleteAllByServerId(serverId);
+            appServerRepository.deleteById(serverId);
+            return;
+        }
+
+        if (leavingMembership.getRole() == ServerRole.OWNER) {
+            ServerMembership newOwner = serverMembershipRepository
+                .findFirstByServerIdAndRoleOrderByIdAsc(serverId, ServerRole.ADMIN)
+                .orElseGet(() -> serverMembershipRepository.findByServerIdOrderByIdAsc(serverId)
+                    .stream()
+                    .filter((membership) -> !membership.getUser().getUsername().equalsIgnoreCase(username))
+                    .findFirst()
+                    .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Owner can leave only when at least one other member exists"
+                    )));
+
+            newOwner.setRole(ServerRole.OWNER);
+            serverMembershipRepository.save(newOwner);
+        }
+
+        serverMembershipRepository.delete(leavingMembership);
+    }
+
     @Transactional(readOnly = true)
     public List<ServerMemberResponse> getServerMembers(UUID serverId, String username) {
         requireMembership(serverId, username);
@@ -136,7 +171,7 @@ public class ServerService {
             .findByServerIdAndUserUsername(serverId, targetUsername)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
 
-        ensureCanModerate(actorMembership, targetMembership);
+        ensureCanUpdateRole(actorMembership, targetMembership);
 
         if (targetMembership.getRole() != requestedRole) {
             targetMembership.setRole(requestedRole);
@@ -153,7 +188,7 @@ public class ServerService {
             .findByServerIdAndUserUsername(serverId, targetUsername)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
 
-        ensureCanModerate(actorMembership, targetMembership);
+        ensureCanBan(actorMembership, targetMembership);
 
         serverMembershipRepository.delete(targetMembership);
         return getServerMembers(serverId, actorUsername);
@@ -204,12 +239,12 @@ public class ServerService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private void ensureCanModerate(ServerMembership actorMembership, ServerMembership targetMembership) {
+    private void ensureCanUpdateRole(ServerMembership actorMembership, ServerMembership targetMembership) {
         ServerRole actorRole = actorMembership.getRole();
         ServerRole targetRole = targetMembership.getRole();
 
-        if (actorRole != ServerRole.OWNER && actorRole != ServerRole.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to manage members");
+        if (actorRole != ServerRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owner can change member roles");
         }
 
         if (actorMembership.getUser().getUsername().equalsIgnoreCase(targetMembership.getUser().getUsername())) {
@@ -220,8 +255,29 @@ public class ServerService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner membership cannot be modified");
         }
 
+        if (targetRole != ServerRole.ADMIN && targetRole != ServerRole.USER && targetRole != ServerRole.MOD) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported target role for role change");
+        }
+    }
+
+    private void ensureCanBan(ServerMembership actorMembership, ServerMembership targetMembership) {
+        ServerRole actorRole = actorMembership.getRole();
+        ServerRole targetRole = targetMembership.getRole();
+
+        if (actorRole != ServerRole.OWNER && actorRole != ServerRole.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to ban members");
+        }
+
+        if (actorMembership.getUser().getUsername().equalsIgnoreCase(targetMembership.getUser().getUsername())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot ban yourself");
+        }
+
+        if (targetRole == ServerRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner membership cannot be modified");
+        }
+
         if (actorRole == ServerRole.ADMIN && targetRole != ServerRole.USER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only manage users");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only ban users");
         }
     }
 

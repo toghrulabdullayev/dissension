@@ -211,6 +211,16 @@ export function ChannelsPage() {
                   navigate(`/channels/${activeServer.id}/${channelId}`)
                 }}
                 onOpenCreateChannel={() => setIsCreateChannelOpen(true)}
+                onLeaveServer={async () => {
+                  try {
+                    await serversApi.leaveServer(activeServer.id)
+                    setServerMembers([])
+                    await loadServers()
+                    navigate('/channels', { replace: true })
+                  } catch (error) {
+                    console.error(error)
+                  }
+                }}
               />
               <ChannelWorkspace
                 username={username}

@@ -53,6 +53,12 @@ public class ServerController {
         return ResponseEntity.ok(joined);
     }
 
+    @DeleteMapping("/{serverId}/leave")
+    public ResponseEntity<Void> leaveServer(@PathVariable UUID serverId, Principal principal) {
+        serverService.leaveServer(serverId, principal.getName());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{serverId}/members")
     public ResponseEntity<List<ServerMemberResponse>> getServerMembers(
         @PathVariable UUID serverId,
