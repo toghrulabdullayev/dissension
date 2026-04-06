@@ -14,53 +14,52 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
 
-    private final AppUserRepository appUserRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+  private final AppUserRepository appUserRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtService jwtService;
 
-    public AuthService(
-        AppUserRepository appUserRepository,
-        PasswordEncoder passwordEncoder,
-        JwtService jwtService
-    ) {
-        this.appUserRepository = appUserRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+  public AuthService(
+      AppUserRepository appUserRepository,
+      PasswordEncoder passwordEncoder,
+      JwtService jwtService) {
+    this.appUserRepository = appUserRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.jwtService = jwtService;
+  }
+
+  public AuthResponse signup(SignupRequest request) {
+    String username = normalizeUsername(request.username());
+
+    if (!request.password().equals(request.confirmPassword())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Passwords do not match");
     }
 
-    public AuthResponse signup(SignupRequest request) {
-        String username = normalizeUsername(request.username());
-
-        if (!request.password().equals(request.confirmPassword())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Passwords do not match");
-        }
-
-        if (appUserRepository.existsByUsername(username)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
-        }
-
-        AppUser appUser = new AppUser(username, passwordEncoder.encode(request.password()));
-        appUserRepository.save(appUser);
-
-        String token = jwtService.generateToken(username);
-        return new AuthResponse(token, username);
+    if (appUserRepository.existsByUsername(username)) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
     }
 
-    public AuthResponse login(LoginRequest request) {
-        String username = normalizeUsername(request.username());
+    AppUser appUser = new AppUser(username, passwordEncoder.encode(request.password()));
+    appUserRepository.save(appUser);
 
-        AppUser appUser = appUserRepository.findByUsername(username)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+    String token = jwtService.generateToken(username);
+    return new AuthResponse(token, username);
+  }
 
-        if (!passwordEncoder.matches(request.password(), appUser.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-        }
+  public AuthResponse login(LoginRequest request) {
+    String username = normalizeUsername(request.username());
 
-        String token = jwtService.generateToken(username);
-        return new AuthResponse(token, username);
+    AppUser appUser = appUserRepository.findByUsername(username)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+
+    if (!passwordEncoder.matches(request.password(), appUser.getPasswordHash())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }
 
-    private String normalizeUsername(String username) {
-        return username.trim();
-    }
+    String token = jwtService.generateToken(username);
+    return new AuthResponse(token, username);
+  }
+
+  private String normalizeUsername(String username) {
+    return username.trim();
+  }
 }

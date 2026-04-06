@@ -5,29 +5,29 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-@Validated
-@ConfigurationProperties(prefix = "security.jwt")
+@Validated // enables validation such as @NotBlank, @Min and etc at STARTUP time
+@ConfigurationProperties(prefix = "security.jwt") // binds security.jwt.* from application.properties
 public class JwtProperties {
 
-    @NotBlank
-    private String secret;
+  @NotBlank // ensures the secret isn't null, empty or whitespace
+  private String secret;
 
-    @Min(1)
-    private long expirationMinutes;
+  @Min(1) // expiration-minutes >= 1 (kebab-case is converted to camelCase)
+  private long expirationMinutes; // relaxed binding (supports multiple naming styles)
 
-    public String getSecret() {
-        return secret;
-    }
+  public String getSecret() {
+    return secret;
+  }
 
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
+  public void setSecret(String secret) {
+    this.secret = secret;
+  }
 
-    public long getExpirationMinutes() {
-        return expirationMinutes;
-    }
+  public long getExpirationMinutes() {
+    return expirationMinutes;
+  }
 
-    public void setExpirationMinutes(long expirationMinutes) {
-        this.expirationMinutes = expirationMinutes;
-    }
+  public void setExpirationMinutes(long expirationMinutes) {
+    this.expirationMinutes = expirationMinutes;
+  }
 }

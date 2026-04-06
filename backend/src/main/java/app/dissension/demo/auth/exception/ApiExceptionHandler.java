@@ -10,25 +10,28 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
-@RestControllerAdvice
+@RestControllerAdvice // intercepts exceptions thrown by controller methods
 public class ApiExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new LinkedHashMap<>();
+  // handles exceptions thrown by @Bean validation (@Valid)
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+    Map<String, String> errors = new LinkedHashMap<>();
 
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-            errors.putIfAbsent(error.getField(), error.getDefaultMessage())
-        );
+    // put them in a map (key = field, value = message)
+    ex.getBindingResult().getFieldErrors()
+        .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
 
-        ErrorResponse response = new ErrorResponse("Validation failed", errors);
-        return ResponseEntity.badRequest().body(response);
-    }
+    // wrap and return
+    ErrorResponse response = new ErrorResponse("Validation failed", errors);
+    return ResponseEntity.badRequest().body(response);
+  }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
-        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
-        ErrorResponse response = new ErrorResponse(ex.getReason(), Map.of());
-        return ResponseEntity.status(status).body(response);
-    }
+  // handles a built-in Spring exception thrown from controllers (carries HTTP status and more)
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+    HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+    ErrorResponse response = new ErrorResponse(ex.getReason(), Map.of());
+    return ResponseEntity.status(status).body(response);
+  }
 }

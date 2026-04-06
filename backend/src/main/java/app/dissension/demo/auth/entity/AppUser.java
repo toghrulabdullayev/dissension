@@ -7,58 +7,59 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-@Entity
-@Table(name = "app_users")
+@Entity // JPA Entity (maps instances of this class to records in a database table)
+@Table(name = "app_users") // speaks for itself
 public class AppUser {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id // identifies primary key
+  @GeneratedValue(strategy = GenerationType.IDENTITY) // pk generation strategy
+  private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String username;
+  @Column(nullable = false, unique = true, length = 50) // configs the username column
+  private String username;
 
-    @Column(nullable = false)
-    private String passwordHash;
+  @Column(nullable = false)
+  private String passwordHash;
 
-    @Column(length = 2048)
-    private String imageUrl;
+  @Column(length = 2048)
+  private String imageUrl;
 
-    protected AppUser() {
-        // Required by JPA.
-    }
+  // an empty constructor required by JPA (should be public or protected)
+  protected AppUser() {
+    //! Required by JPA to create instances of the entity using reflection.
+  }
 
-    public AppUser(String username, String passwordHash) {
-        this.username = username;
-        this.passwordHash = passwordHash;
-        this.imageUrl = null;
-    }
+  public AppUser(String username, String passwordHash) {
+    this.username = username;
+    this.passwordHash = passwordHash;
+    this.imageUrl = null;
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getUsername() {
+    return username;
+  }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+  public void setUsername(String username) {
+    this.username = username;
+  }
 
-    public String getPasswordHash() {
-        return passwordHash;
-    }
+  public String getPasswordHash() {
+    return passwordHash;
+  }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
+  public void setPasswordHash(String passwordHash) {
+    this.passwordHash = passwordHash;
+  }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
+  public String getImageUrl() {
+    return imageUrl;
+  }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
+  public void setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+  }
 }
