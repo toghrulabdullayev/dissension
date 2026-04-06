@@ -11,10 +11,15 @@ import {
   Video,
   VideoOff,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../../../shared/ui/button'
-import { Input } from '../../../shared/ui/input'
 import type { Channel } from '../model/types'
 import type { ServerMember, ServerRole } from '../../servers/model/types'
 
@@ -25,6 +30,7 @@ const MEMBERS_SIDEBAR_COLLAPSE_THRESHOLD = 150
 const MEMBERS_SIDEBAR_DESKTOP_BREAKPOINT = 768
 const MEMBERS_SIDEBAR_MOBILE_MIN_WIDTH = 240
 const MEMBERS_SIDEBAR_MOBILE_MAX_WIDTH = 360
+const MESSAGE_COMPOSER_MAX_LINES = 3
 
 function getMembersSidebarMaxWidth(viewportWidth: number) {
   if (viewportWidth >= 1440) {
@@ -57,6 +63,12 @@ function getMembersSidebarDrawerWidth(viewportWidth: number) {
   )
 }
 
+type LocalChannelMessage = {
+  id: string
+  author: string
+  content: string
+}
+
 type ChannelWorkspaceProps = {
   username: string | null
   selectedChannel: Channel | null
@@ -83,6 +95,7 @@ export function ChannelWorkspace({
   onBanMember,
 }: ChannelWorkspaceProps) {
   const [messageDraft, setMessageDraft] = useState('')
+  const [messagesByChannel, setMessagesByChannel] = useState<Record<string, LocalChannelMessage[]>>({})
   const [micEnabled, setMicEnabled] = useState(true)
   const [cameraEnabled, setCameraEnabled] = useState(true)
   const [membersSidebarWidth, setMembersSidebarWidth] = useState(MEMBERS_SIDEBAR_DEFAULT_WIDTH)
@@ -96,6 +109,9 @@ export function ChannelWorkspace({
   const [membersActionError, setMembersActionError] = useState<string | null>(null)
   const resizeStartXRef = useRef(0)
   const resizeStartWidthRef = useRef(MEMBERS_SIDEBAR_DEFAULT_WIDTH)
+  const chatScrollRegionRef = useRef<HTMLDivElement | null>(null)
+  const messageTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const shouldScrollToBottomRef = useRef(false)
   const isMobileViewport = viewportWidth < MEMBERS_SIDEBAR_DESKTOP_BREAKPOINT
   const maxMembersSidebarWidth = getMembersSidebarMaxWidth(viewportWidth)
   const effectiveMembersSidebarWidth = isMobileViewport
@@ -107,7 +123,60 @@ export function ChannelWorkspace({
     serverMembers.find((member) => member.username.toLowerCase() === normalizedUsername)?.role ?? currentRole
 
   const canWriteInInfoChannel =
-    effectiveCurrentRole === 'OWNER' || effectiveCurrentRole === 'ADMIN' || effectiveCurrentRole === 'MOD'
+    effectiveCurrentRole === 'OWNER' || effectiveCurrentRole === 'ADMIN'
+  const canSendInSelectedChannel =
+    selectedChannel?.type === 'CHAT' || (selectedChannel?.type === 'INFO' && canWriteInInfoChannel)
+  const selectedChannelMessages = selectedChannel ? messagesByChannel[selectedChannel.id] ?? [] : []
+
+  useEffect(() => {
+    setMessageDraft('')
+  }, [selectedChannel?.id])
+
+  useEffect(() => {
+    const textarea = messageTextareaRef.current
+    if (!textarea) {
+      return
+    }
+
+    textarea.style.height = 'auto'
+
+    const computedStyle = window.getComputedStyle(textarea)
+    const lineHeight = Number.parseFloat(computedStyle.lineHeight) || 20
+    const verticalPadding =
+      Number.parseFloat(computedStyle.paddingTop) + Number.parseFloat(computedStyle.paddingBottom)
+    const verticalBorder =
+      Number.parseFloat(computedStyle.borderTopWidth) + Number.parseFloat(computedStyle.borderBottomWidth)
+    const maxHeight = lineHeight * MESSAGE_COMPOSER_MAX_LINES + verticalPadding + verticalBorder
+
+    const targetHeight = Math.min(textarea.scrollHeight, maxHeight)
+
+    textarea.style.height = `${targetHeight}px`
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [messageDraft, selectedChannel?.id])
+
+  useEffect(() => {
+    if (!shouldScrollToBottomRef.current) {
+      return
+    }
+
+    const container = chatScrollRegionRef.current
+    if (!container) {
+      shouldScrollToBottomRef.current = false
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth',
+      })
+      shouldScrollToBottomRef.current = false
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [selectedChannel?.id, selectedChannelMessages.length])
 
   useEffect(() => {
     if (openMemberMenuFor == null) {
@@ -267,6 +336,46 @@ export function ChannelWorkspace({
     return `Make ${member.username} user`
   }
 
+  const sendMessage = () => {
+    if (!selectedChannel || !canSendInSelectedChannel) {
+      return
+    }
+
+    const trimmedDraft = messageDraft.trim()
+    if (trimmedDraft.length === 0) {
+      return
+    }
+
+    const author = username?.trim() || 'Unknown user'
+    const nextMessage: LocalChannelMessage = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      author,
+      content: trimmedDraft,
+    }
+
+    shouldScrollToBottomRef.current = true
+
+    setMessagesByChannel((previousMessages) => {
+      const existingMessages = previousMessages[selectedChannel.id] ?? []
+
+      return {
+        ...previousMessages,
+        [selectedChannel.id]: [...existingMessages, nextMessage],
+      }
+    })
+
+    setMessageDraft('')
+  }
+
+  const handleDraftKeyDown = (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) {
+      return
+    }
+
+    event.preventDefault()
+    sendMessage()
+  }
+
   const membersSidebarContent = (
     <aside
       className={[
@@ -314,11 +423,17 @@ export function ChannelWorkspace({
                         const canChangeRole = canChangeRoleForMember(member)
                         const canBan = canBanMember(member)
                         const showMenuTrigger = canChangeRole || canBan
+                        const isCurrentUser = normalizedUsername === member.username.toLowerCase()
 
                         return (
                           <li
                             key={member.username}
-                            className="relative flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2"
+                            className={[
+                              'relative flex items-center gap-3 rounded-md border px-3 py-2',
+                              isCurrentUser
+                                ? 'border-slate-300 bg-slate-100'
+                                : 'border-slate-200 bg-white',
+                            ].join(' ')}
                           >
                             {member.imageUrl ? (
                               <img
@@ -335,6 +450,12 @@ export function ChannelWorkspace({
                             <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
                               {member.username}
                             </p>
+
+                            {isCurrentUser ? (
+                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                                You
+                              </span>
+                            ) : null}
 
                             {showMenuTrigger ? (
                               <button
@@ -423,122 +544,168 @@ export function ChannelWorkspace({
 
   return (
     <>
-      <section className="flex min-w-0 flex-1 overflow-hidden">
-        <div className="flex min-w-0 flex-1 flex-col px-6 pb-6 pt-0">
-        <div className="-mx-6 mb-4 shrink-0 border-b border-slate-200 px-6 pb-3 pt-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+      <section className="flex h-screen min-w-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pb-6 pt-0">
+          <div className="-mx-6 shrink-0 border-b border-slate-200 px-6 pb-3 pt-4">
+            <div className="flex min-h-6 min-w-0 items-center gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onToggleChannelsPanel}
+                  aria-label={channelsPanelCollapsed ? 'Expand channels panel' : 'Collapse channels panel'}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                >
+                  {channelsPanelCollapsed ? (
+                    <ChevronRight className="h-4 w-4" />
+                  ) : (
+                    <ChevronLeft className="h-4 w-4" />
+                  )}
+                </button>
+
+                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+                  {selectedChannel?.name ?? 'No channel selected'}
+                </p>
+              </div>
+
               <button
                 type="button"
-                onClick={onToggleChannelsPanel}
-                aria-label={channelsPanelCollapsed ? 'Expand channels panel' : 'Collapse channels panel'}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                onClick={toggleMembersSidebar}
+                className="ml-auto inline-flex shrink-0 items-center rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
               >
-                {channelsPanelCollapsed ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4" />
-                )}
+                Members
               </button>
-
-              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
-                {selectedChannel?.name ?? 'No channel selected'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={toggleMembersSidebar}
-              className="ml-auto inline-flex shrink-0 items-center rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              Members
-            </button>
-          </div>
-        </div>
-
-        {selectedChannel?.type === 'CALL' ? (
-          <div className="rounded-md border border-slate-200 bg-white p-4">
-            <h3 className="text-lg font-semibold">Call Channel</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Voice, video, and screen sharing UI controls are ready for real-time integration.
-            </p>
-
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <Button
-                type="button"
-                variant={micEnabled ? 'default' : 'outline'}
-                onClick={() => setMicEnabled((value) => !value)}
-                className="w-full"
-              >
-                {micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                {micEnabled ? 'Mic On' : 'Mic Off'}
-              </Button>
-
-              <Button
-                type="button"
-                variant={cameraEnabled ? 'default' : 'outline'}
-                onClick={() => setCameraEnabled((value) => !value)}
-                className="w-full"
-              >
-                {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                {cameraEnabled ? 'Camera On' : 'Camera Off'}
-              </Button>
-
-              <Button type="button" variant="outline" className="w-full">
-                <MonitorUp className="h-4 w-4" />
-                Share Screen
-              </Button>
-
-              <Button type="button" variant="outline" className="w-full text-red-600 hover:bg-red-50">
-                <PhoneOff className="h-4 w-4" />
-                Hang Up
-              </Button>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="flex-1 rounded-md border border-slate-200 bg-white p-4">
-              <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
-                {!selectedChannel ? (
-                  <p className="text-sm text-slate-500">Select a channel to start chatting.</p>
-                ) : selectedChannel.type === 'INFO' ? (
-                  <div className="text-center">
-                    <div className="mb-2 inline-flex rounded-full bg-slate-200 p-2 text-slate-600">
-                      <Info className="h-4 w-4" />
+
+          {selectedChannel?.type === 'CALL' ? (
+            <div className="servers-scroll-region min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-4">
+              <div className="rounded-md border border-slate-200 bg-white p-4">
+                <h3 className="text-lg font-semibold">Call Channel</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Voice, video, and screen sharing UI controls are ready for real-time integration.
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Button
+                    type="button"
+                    variant={micEnabled ? 'default' : 'outline'}
+                    onClick={() => setMicEnabled((value) => !value)}
+                    className="w-full"
+                  >
+                    {micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                    {micEnabled ? 'Mic On' : 'Mic Off'}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant={cameraEnabled ? 'default' : 'outline'}
+                    onClick={() => setCameraEnabled((value) => !value)}
+                    className="w-full"
+                  >
+                    {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                    {cameraEnabled ? 'Camera On' : 'Camera Off'}
+                  </Button>
+
+                  <Button type="button" variant="outline" className="w-full">
+                    <MonitorUp className="h-4 w-4" />
+                    Share Screen
+                  </Button>
+
+                  <Button type="button" variant="outline" className="w-full text-red-600 hover:bg-red-50">
+                    <PhoneOff className="h-4 w-4" />
+                    Hang Up
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={chatScrollRegionRef}
+                className="servers-scroll-region min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-4"
+              >
+                <div className="min-h-full p-1">
+                  {!selectedChannel ? (
+                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm text-slate-500">Select a channel to start chatting.</p>
                     </div>
-                    <p className="text-sm text-slate-600">No announcements posted yet.</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500">No messages yet in this channel.</p>
-                )}
-              </div>
-            </div>
+                  ) : selectedChannelMessages.length === 0 ? (
+                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
+                      {selectedChannel.type === 'INFO' ? (
+                        <div className="text-center">
+                          <div className="mb-2 inline-flex rounded-full bg-slate-200 p-2 text-slate-600">
+                            <Info className="h-4 w-4" />
+                          </div>
+                          <p className="text-sm text-slate-600">No announcements posted yet.</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500">No messages yet in this channel.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedChannelMessages.map((message) => {
+                        const isCurrentUserMessage = message.author.toLowerCase() === normalizedUsername
 
-            {selectedChannel?.type !== 'INFO' || canWriteInInfoChannel ? (
-              <div className="mt-3 flex gap-2">
-                <Input
-                  value={messageDraft}
-                  onChange={(event) => setMessageDraft(event.target.value)}
-                  placeholder={
-                    selectedChannel?.type === 'INFO'
-                      ? 'Post an announcement...'
-                      : 'Type your message...'
-                  }
-                  className="flex-1"
-                  disabled={selectedChannel == null}
-                />
-                <Button
-                  type="button"
-                  disabled={selectedChannel == null}
-                >
-                  <Send className="h-4 w-4" />
-                  {selectedChannel?.type === 'INFO' ? 'Post' : 'Send'}
-                </Button>
+                        return (
+                        <article
+                          key={message.id}
+                          className={[
+                            'max-w-2xl',
+                            isCurrentUserMessage ? 'ml-auto' : 'mr-auto',
+                          ].join(' ')}
+                        >
+                          <p
+                            className={[
+                              'mb-1 text-xs font-semibold text-slate-500',
+                              isCurrentUserMessage ? 'text-right' : '',
+                            ].join(' ')}
+                          >
+                            {message.author}
+                          </p>
+                          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 break-words [overflow-wrap:anywhere]">
+                            {message.content}
+                          </div>
+                        </article>
+                      )})}
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : null}
-          </>
-        )}
-      </div>
+
+              {canSendInSelectedChannel ? (
+                <div className="mt-3 flex shrink-0 gap-2">
+                  <textarea
+                    ref={messageTextareaRef}
+                    rows={1}
+                    value={messageDraft}
+                    onChange={(event) => setMessageDraft(event.target.value)}
+                    onKeyDown={handleDraftKeyDown}
+                    placeholder={
+                      selectedChannel?.type === 'INFO'
+                        ? 'Post an announcement...'
+                        : 'Type your message...'
+                    }
+                    className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canSendInSelectedChannel}
+                  />
+                  <Button
+                    type="button"
+                    onClick={sendMessage}
+                    disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
+                  >
+                    <Send className="h-4 w-4" />
+                    {selectedChannel?.type === 'INFO' ? 'Post' : 'Send'}
+                  </Button>
+                </div>
+              ) : selectedChannel?.type === 'INFO' ? (
+                <p className="mt-3 shrink-0 text-xs text-slate-500">
+                  Only owners and admins can post announcements in this channel.
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
 
       {!membersSidebarCollapsed && !isMobileViewport ? (
         <>
