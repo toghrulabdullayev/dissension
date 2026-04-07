@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuthStore } from '../../auth/model/authStore'
+import { useChatStore } from '../../chat/model/chatStore'
 import { useChannelsStore } from '../model/channelsStore'
 import { ChannelWorkspace } from '../ui/ChannelWorkspace'
 import { ChannelsPanel } from '../ui/ChannelsPanel'
@@ -48,6 +49,16 @@ export function ChannelsPage() {
   const updateChannel = useChannelsStore((state) => state.updateChannel)
   const deleteChannel = useChannelsStore((state) => state.deleteChannel)
   const clearChannels = useChannelsStore((state) => state.clearChannels)
+  const connectChat = useChatStore((state) => state.connect)
+  const disconnectChat = useChatStore((state) => state.disconnect)
+  const loadChannelMessages = useChatStore((state) => state.loadChannelMessages)
+  const sendChatMessage = useChatStore((state) => state.sendMessage)
+  const clearChat = useChatStore((state) => state.clearChat)
+  const messagesByChannel = useChatStore((state) => state.messagesByChannel)
+  const loadingByChannel = useChatStore((state) => state.loadingByChannel)
+  const errorByChannel = useChatStore((state) => state.errorByChannel)
+  const onlineUsernamesByServer = useChatStore((state) => state.onlineUsernamesByServer)
+  const onlineCountByServer = useChatStore((state) => state.onlineCountByServer)
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
   const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(
@@ -76,12 +87,50 @@ export function ChannelsPage() {
   const activeServer =
     servers.find((server) => server.id === normalizedServerId) ?? null
 
+  const selectedChannelMessages = useMemo(() => {
+    if (!selectedChannel) {
+      return []
+    }
+
+    return messagesByChannel[selectedChannel.id] ?? []
+  }, [selectedChannel, messagesByChannel])
+
+  const selectedChannelLoading =
+    selectedChannel != null ? (loadingByChannel[selectedChannel.id] ?? false) : false
+  const selectedChannelError =
+    selectedChannel != null ? (errorByChannel[selectedChannel.id] ?? null) : null
+
+  const activeServerOnlineUsernames =
+    activeServer != null ? (onlineUsernamesByServer[activeServer.id] ?? []) : []
+
+  const discoverResultsWithPresence = useMemo(
+    () => discoverResults.map((server) => ({
+      ...server,
+      onlineMembers: onlineCountByServer[server.id] ?? server.onlineMembers,
+    })),
+    [discoverResults, onlineCountByServer],
+  )
+
   const handleLogout = () => {
     clearServers()
     clearChannels()
+    clearChat()
     clearSession()
     navigate('/login')
   }
+
+  useEffect(() => {
+    if (!token) {
+      disconnectChat()
+      return
+    }
+
+    connectChat(token)
+
+    return () => {
+      disconnectChat()
+    }
+  }, [token, connectChat, disconnectChat])
 
   useEffect(() => {
     if (!token) {
@@ -113,6 +162,14 @@ export function ChannelsPage() {
 
     void loadChannels(normalizedServerId)
   }, [token, normalizedServerId, activeServer, loadChannels])
+
+  useEffect(() => {
+    if (!token || !activeServer || !selectedChannel || selectedChannel.type === 'CALL') {
+      return
+    }
+
+    void loadChannelMessages(activeServer.id, selectedChannel.id)
+  }, [token, activeServer, selectedChannel, loadChannelMessages])
 
   useEffect(() => {
     if (
@@ -301,12 +358,23 @@ export function ChannelsPage() {
               <ChannelWorkspace
                 username={username}
                 selectedChannel={selectedChannel}
+                messages={selectedChannelMessages}
+                messagesLoading={selectedChannelLoading}
+                messagesError={selectedChannelError}
                 currentRole={activeServer?.role ?? 'USER'}
                 serverMembers={serverMembers}
+                onlineUsernames={activeServerOnlineUsernames}
                 membersLoading={membersLoading}
                 membersCount={serverMembers.length > 0 ? serverMembers.length : activeServer.members}
                 channelsPanelCollapsed={channelsPanelCollapsed}
                 onToggleChannelsPanel={() => setChannelsPanelCollapsed((value) => !value)}
+                onSendMessage={async (content) => {
+                  if (!selectedChannel) {
+                    return
+                  }
+
+                  await sendChatMessage(activeServer.id, selectedChannel.id, content)
+                }}
                 onUpdateMemberRole={async (targetUsername, role) => {
                   const updatedMembers = await serversApi.updateServerMemberRole(activeServer.id, targetUsername, role)
                   setServerMembers(updatedMembers)
@@ -331,7 +399,7 @@ export function ChannelsPage() {
                   navigate(`/channels/${joined.id}`)
                 }
               }}
-              servers={discoverResults}
+              servers={discoverResultsWithPresence}
               loading={discoverLoading}
               error={discoverError}
             />

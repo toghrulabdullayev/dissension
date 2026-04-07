@@ -2,6 +2,7 @@ package app.dissension.demo.server.service;
 
 import app.dissension.demo.auth.entity.AppUser;
 import app.dissension.demo.auth.repository.AppUserRepository;
+import app.dissension.demo.chat.service.PresenceService;
 import app.dissension.demo.server.dto.CreateServerRequest;
 import app.dissension.demo.server.dto.DiscoverServerResponse;
 import app.dissension.demo.server.dto.ServerMemberResponse;
@@ -27,18 +28,21 @@ public class ServerService {
   private final AppUserRepository appUserRepository;
   private final ServerMembershipService serverMembershipService;
   private final ServerModerationService serverModerationService;
+  private final PresenceService presenceService;
 
   public ServerService(
       AppServerRepository appServerRepository,
       ServerMembershipRepository serverMembershipRepository,
       AppUserRepository appUserRepository,
       ServerMembershipService serverMembershipService,
-      ServerModerationService serverModerationService) {
+      ServerModerationService serverModerationService,
+      PresenceService presenceService) {
     this.appServerRepository = appServerRepository;
     this.serverMembershipRepository = serverMembershipRepository;
     this.appUserRepository = appUserRepository;
     this.serverMembershipService = serverMembershipService;
     this.serverModerationService = serverModerationService;
+    this.presenceService = presenceService;
   }
 
   @Transactional
@@ -139,7 +143,7 @@ public class ServerService {
         server.getDescription(),
         owner,
         members,
-        0L,
+      presenceService.countOnlineMembers(server.getId()),
         joined);
   }
 

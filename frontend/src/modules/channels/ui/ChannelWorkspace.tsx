@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -24,6 +25,7 @@ import { createPortal } from 'react-dom'
 import { Button } from '../../../shared/ui/button'
 import type { Channel } from '../model/types'
 import type { ServerMember, ServerRole } from '../../servers/model/types'
+import type { ChatMessage } from '../../chat/model/types'
 
 const MEMBERS_SIDEBAR_DEFAULT_WIDTH = 280
 const MEMBERS_SIDEBAR_MIN_WIDTH = 200
@@ -66,21 +68,20 @@ function getMembersSidebarDrawerWidth(viewportWidth: number) {
   )
 }
 
-type LocalChannelMessage = {
-  id: string
-  author: string
-  content: string
-}
-
 type ChannelWorkspaceProps = {
   username: string | null
   selectedChannel: Channel | null
+  messages: ChatMessage[]
+  messagesLoading: boolean
+  messagesError: string | null
   currentRole?: ServerRole
   serverMembers: ServerMember[]
+  onlineUsernames: string[]
   membersLoading: boolean
   membersCount: number
   channelsPanelCollapsed: boolean
   onToggleChannelsPanel: () => void
+  onSendMessage: (content: string) => Promise<void>
   onUpdateMemberRole: (username: string, role: 'ADMIN' | 'USER') => Promise<void>
   onBanMember: (username: string) => Promise<void>
 }
@@ -88,17 +89,22 @@ type ChannelWorkspaceProps = {
 export function ChannelWorkspace({
   username,
   selectedChannel,
+  messages,
+  messagesLoading,
+  messagesError,
   currentRole = 'USER',
   serverMembers,
+  onlineUsernames,
   membersLoading,
   membersCount,
   channelsPanelCollapsed,
   onToggleChannelsPanel,
+  onSendMessage,
   onUpdateMemberRole,
   onBanMember,
 }: ChannelWorkspaceProps) {
   const [messageDraft, setMessageDraft] = useState('')
-  const [messagesByChannel, setMessagesByChannel] = useState<Record<string, LocalChannelMessage[]>>({})
+  const [messageSendError, setMessageSendError] = useState<string | null>(null)
   const [micEnabled, setMicEnabled] = useState(true)
   const [cameraEnabled, setCameraEnabled] = useState(true)
   const [membersSidebarWidth, setMembersSidebarWidth] = useState(MEMBERS_SIDEBAR_DEFAULT_WIDTH)
@@ -143,10 +149,15 @@ export function ChannelWorkspace({
     effectiveCurrentRole === 'OWNER' || effectiveCurrentRole === 'ADMIN'
   const canSendInSelectedChannel =
     selectedChannel?.type === 'CHAT' || (selectedChannel?.type === 'INFO' && canWriteInInfoChannel)
-  const selectedChannelMessages = selectedChannel ? messagesByChannel[selectedChannel.id] ?? [] : []
+  const selectedChannelMessages = selectedChannel ? messages : []
+  const onlineUsernamesSet = useMemo(
+    () => new Set(onlineUsernames.map((value) => value.toLowerCase())),
+    [onlineUsernames],
+  )
 
   useEffect(() => {
     setMessageDraft('')
+    setMessageSendError(null)
   }, [selectedChannel?.id])
 
   useEffect(() => {
@@ -436,6 +447,8 @@ export function ChannelWorkspace({
   }
 
   const sendMessage = () => {
+    setMessageSendError(null)
+
     if (!selectedChannel || !canSendInSelectedChannel) {
       return
     }
@@ -445,25 +458,16 @@ export function ChannelWorkspace({
       return
     }
 
-    const author = username?.trim() || 'Unknown user'
-    const nextMessage: LocalChannelMessage = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      author,
-      content: trimmedDraft,
-    }
-
     shouldScrollToBottomRef.current = true
 
-    setMessagesByChannel((previousMessages) => {
-      const existingMessages = previousMessages[selectedChannel.id] ?? []
-
-      return {
-        ...previousMessages,
-        [selectedChannel.id]: [...existingMessages, nextMessage],
-      }
-    })
-
-    setMessageDraft('')
+    void onSendMessage(trimmedDraft)
+      .then(() => {
+        setMessageDraft('')
+      })
+      .catch((error) => {
+        shouldScrollToBottomRef.current = false
+        setMessageSendError(error instanceof Error ? error.message : 'Failed to send message')
+      })
   }
 
   const handleDraftKeyDown = (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
@@ -549,6 +553,7 @@ export function ChannelWorkspace({
                         const canBan = canBanMember(member)
                         const showMenuTrigger = canChangeRole || canBan
                         const isCurrentUser = normalizedUsername === member.username.toLowerCase()
+                        const isOnline = onlineUsernamesSet.has(member.username.toLowerCase())
 
                         return (
                           <li
@@ -560,17 +565,23 @@ export function ChannelWorkspace({
                                 : 'border-slate-200 bg-white',
                             ].join(' ')}
                           >
-                            {member.imageUrl ? (
-                              <img
-                                src={member.imageUrl}
-                                alt={`${member.username} avatar`}
-                                className="h-9 w-9 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold uppercase text-slate-600">
-                                {member.username.slice(0, 2)}
-                              </div>
-                            )}
+                            <div className="relative h-9 w-9 shrink-0">
+                              {member.imageUrl ? (
+                                <img
+                                  src={member.imageUrl}
+                                  alt={`${member.username} avatar`}
+                                  className="h-9 w-9 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold uppercase text-slate-600">
+                                  {member.username.slice(0, 2)}
+                                </div>
+                              )}
+
+                              {isOnline ? (
+                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-white bg-emerald-500" />
+                              ) : null}
+                            </div>
 
                             <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
                               {member.username}
@@ -754,6 +765,14 @@ export function ChannelWorkspace({
                     <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm text-slate-500">Select a channel to start chatting.</p>
                     </div>
+                  ) : messagesLoading ? (
+                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm text-slate-500">Loading messages...</p>
+                    </div>
+                  ) : messagesError ? (
+                    <div className="flex h-full items-center justify-center rounded-md border border-red-200 bg-red-50 p-4">
+                      <p className="text-sm text-red-700">{messagesError}</p>
+                    </div>
                   ) : selectedChannelMessages.length === 0 ? (
                     <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
                       {selectedChannel.type === 'INFO' ? (
@@ -770,14 +789,14 @@ export function ChannelWorkspace({
                   ) : (
                     <div className="flex flex-col">
                       {selectedChannelMessages.map((message, index) => {
-                        const isCurrentUserMessage = message.author.toLowerCase() === normalizedUsername
+                        const isCurrentUserMessage = message.authorUsername.toLowerCase() === normalizedUsername
                         const previousMessage = index > 0 ? selectedChannelMessages[index - 1] : null
                         const isSameAuthorAsPrevious =
                           previousMessage != null &&
-                          previousMessage.author.toLowerCase() === message.author.toLowerCase()
+                          previousMessage.authorUsername.toLowerCase() === message.authorUsername.toLowerCase()
                         const showAuthorLabel =
                           previousMessage == null ||
-                          previousMessage.author.toLowerCase() !== message.author.toLowerCase()
+                          previousMessage.authorUsername.toLowerCase() !== message.authorUsername.toLowerCase()
 
                         return (
                         <article
@@ -795,7 +814,7 @@ export function ChannelWorkspace({
                                 isCurrentUserMessage ? 'text-right' : '',
                               ].join(' ')}
                             >
-                              {message.author}
+                              {message.authorUsername}
                             </p>
                           ) : null}
                           <div className="max-w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 whitespace-pre-wrap break-all">
@@ -809,29 +828,35 @@ export function ChannelWorkspace({
               </div>
 
               {canSendInSelectedChannel ? (
-                <div className="mt-3 flex shrink-0 gap-2">
-                  <textarea
-                    ref={messageTextareaRef}
-                    rows={1}
-                    value={messageDraft}
-                    onChange={(event) => setMessageDraft(event.target.value)}
-                    onKeyDown={handleDraftKeyDown}
-                    placeholder={
-                      selectedChannel?.type === 'INFO'
-                        ? 'Post an announcement...'
-                        : 'Type your message...'
-                    }
-                    className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!canSendInSelectedChannel}
-                  />
-                  <Button
-                    type="button"
-                    onClick={sendMessage}
-                    disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
-                  >
-                    <Send className="h-4 w-4" />
-                    {selectedChannel?.type === 'INFO' ? 'Post' : 'Send'}
-                  </Button>
+                <div className="mt-3 shrink-0">
+                  <div className="flex gap-2">
+                    <textarea
+                      ref={messageTextareaRef}
+                      rows={1}
+                      value={messageDraft}
+                      onChange={(event) => setMessageDraft(event.target.value)}
+                      onKeyDown={handleDraftKeyDown}
+                      placeholder={
+                        selectedChannel?.type === 'INFO'
+                          ? 'Post an announcement...'
+                          : 'Type your message...'
+                      }
+                      className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!canSendInSelectedChannel}
+                    />
+                    <Button
+                      type="button"
+                      onClick={sendMessage}
+                      disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
+                    >
+                      <Send className="h-4 w-4" />
+                      {selectedChannel?.type === 'INFO' ? 'Post' : 'Send'}
+                    </Button>
+                  </div>
+
+                  {messageSendError ? (
+                    <p className="mt-2 text-xs text-red-600">{messageSendError}</p>
+                  ) : null}
                 </div>
               ) : selectedChannel?.type === 'INFO' ? (
                 <p className="mt-3 shrink-0 text-xs text-slate-500">
