@@ -49,14 +49,6 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/channels/@me',
-    element: (
-      <RequireAuth>
-        <ChannelsPage />
-      </RequireAuth>
-    ),
-  },
-  {
     path: '/channels/:serverId',
     element: (
       <RequireAuth>

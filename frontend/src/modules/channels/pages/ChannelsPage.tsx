@@ -59,7 +59,6 @@ export function ChannelsPage() {
   const [membersLoading, setMembersLoading] = useState(false)
   const [hasServerBootstrapCompleted, setHasServerBootstrapCompleted] = useState(false)
 
-  const isDmsRoute = params.serverId === '@me'
   const normalizedServerId = normalizeUuid(params.serverId)
   const normalizedChannelId = normalizeUuid(params.channelId)
 
@@ -108,17 +107,16 @@ export function ChannelsPage() {
   }, [token, loadServers])
 
   useEffect(() => {
-    if (!token || isDmsRoute || normalizedServerId == null || !activeServer) {
+    if (!token || normalizedServerId == null || !activeServer) {
       return
     }
 
     void loadChannels(normalizedServerId)
-  }, [token, isDmsRoute, normalizedServerId, activeServer, loadChannels])
+  }, [token, normalizedServerId, activeServer, loadChannels])
 
   useEffect(() => {
     if (
       !token ||
-      isDmsRoute ||
       !hasServerBootstrapCompleted ||
       normalizedServerId == null ||
       activeServer ||
@@ -133,10 +131,10 @@ export function ChannelsPage() {
     }
 
     navigate('/channels', { replace: true })
-  }, [token, isDmsRoute, hasServerBootstrapCompleted, normalizedServerId, activeServer, serversLoading, servers, navigate])
+  }, [token, hasServerBootstrapCompleted, normalizedServerId, activeServer, serversLoading, servers, navigate])
 
   useEffect(() => {
-    if (!token || isDmsRoute || !activeServer) {
+    if (!token || !activeServer) {
       return
     }
 
@@ -152,12 +150,11 @@ export function ChannelsPage() {
     if (!channelExists) {
       navigate(`/channels/${activeServer.id}/${channels[0].id}`, { replace: true })
     }
-  }, [token, isDmsRoute, activeServer, channels, normalizedChannelId, params.channelId, navigate])
+  }, [token, activeServer, channels, normalizedChannelId, params.channelId, navigate])
 
   useEffect(() => {
     if (
       !token ||
-      isDmsRoute ||
       !hasServerBootstrapCompleted ||
       activeServer ||
       serversLoading ||
@@ -167,7 +164,7 @@ export function ChannelsPage() {
     }
 
     void discoverServers('')
-  }, [token, isDmsRoute, hasServerBootstrapCompleted, activeServer, serversLoading, normalizedServerId, discoverServers])
+  }, [token, hasServerBootstrapCompleted, activeServer, serversLoading, normalizedServerId, discoverServers])
 
   useEffect(() => {
     if (!token || !activeServer) {
@@ -239,23 +236,14 @@ export function ChannelsPage() {
 
             navigate(`/channels/${serverId}`)
           }}
-          onOpenDms={() => navigate('/channels/@me')}
           onOpenCreateServer={() => setIsCreateServerOpen(true)}
           onOpenDiscover={() => navigate('/channels')}
-          isDmsActive={isDmsRoute}
-          isDiscoverActive={!isDmsRoute && activeServer == null}
+          isDiscoverActive={activeServer == null}
           onLogout={handleLogout}
         />
 
         <main className="flex min-w-0 flex-1 overflow-hidden">
-          {isDmsRoute ? (
-            <section className="flex min-w-0 flex-1 items-center justify-center p-6">
-              <div className="w-full max-w-2xl rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
-                <h2 className="text-lg font-semibold text-slate-900">Direct Messages</h2>
-                <p className="mt-2 text-sm text-slate-600">DMs will appear here once messaging is enabled.</p>
-              </div>
-            </section>
-          ) : activeServer ? (
+          {activeServer ? (
             <>
               <ChannelsPanel
                 channels={channels}
