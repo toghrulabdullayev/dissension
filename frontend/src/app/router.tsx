@@ -2,14 +2,21 @@ import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { RequireAuth } from './RequireAuth'
 import { RequireGuest } from './RequireGuest'
 import { useAuthStore } from '../modules/auth/model/authStore'
+import { isTokenActive } from '../modules/auth/model/token'
 import { LoginPage } from '../modules/auth/pages/LoginPage'
 import { SignupPage } from '../modules/auth/pages/SignupPage'
 import { ChannelsPage } from '../modules/channels/pages/ChannelsPage'
 
 function RootRedirect() {
   const token = useAuthStore((state) => state.token)
+  const clearSession = useAuthStore((state) => state.clearSession)
+  const hasValidToken = isTokenActive(token)
 
-  return <Navigate to={token ? '/channels' : '/login'} replace />
+  if (token && !hasValidToken) {
+    clearSession()
+  }
+
+  return <Navigate to={hasValidToken ? '/channels' : '/login'} replace />
 }
 
 const router = createBrowserRouter([
@@ -35,6 +42,14 @@ const router = createBrowserRouter([
   },
   {
     path: '/channels',
+    element: (
+      <RequireAuth>
+        <ChannelsPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/channels/@me',
     element: (
       <RequireAuth>
         <ChannelsPage />

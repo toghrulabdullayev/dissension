@@ -8,8 +8,10 @@ type ServerSidebarProps = {
   servers: Server[]
   activeServerId: string | null
   onSelectServer: (serverId: string) => void
+  onOpenDms: () => void
   onOpenCreateServer: () => void
   onOpenDiscover: () => void
+  isDmsActive: boolean
   isDiscoverActive: boolean
   onLogout: () => void
 }
@@ -18,8 +20,10 @@ export function ServerSidebar({
   servers,
   activeServerId,
   onSelectServer,
+  onOpenDms,
   onOpenCreateServer,
   onOpenDiscover,
+  isDmsActive,
   isDiscoverActive,
   onLogout,
 }: ServerSidebarProps) {
@@ -45,7 +49,26 @@ export function ServerSidebar({
   return (
     <>
       <aside className="sticky top-0 flex h-screen w-20 shrink-0 flex-col border-r border-slate-200 bg-slate-100/70 p-3">
-        <div className="mb-3 text-center text-xs font-semibold text-slate-500">SERVERS</div>
+        <button
+          type="button"
+          onClick={onOpenDms}
+          onMouseEnter={(event) => showServerTooltip('Direct messages', event.currentTarget)}
+          onMouseLeave={hideServerTooltip}
+          onFocus={(event) => showServerTooltip('Direct messages', event.currentTarget)}
+          onBlur={hideServerTooltip}
+          className={[
+            'mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border transition',
+            isDmsActive
+              ? 'rounded-xl border-slate-900 bg-slate-900 text-white'
+              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-200',
+          ].join(' ')}
+        >
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-300 text-[10px] font-black tracking-tight text-slate-700">
+            DM
+          </span>
+        </button>
+
+        <div className="-mx-3 mb-3 border-t border-slate-200" />
 
         <div
           className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden"

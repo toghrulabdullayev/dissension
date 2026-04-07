@@ -59,6 +59,7 @@ export function ChannelsPage() {
   const [membersLoading, setMembersLoading] = useState(false)
   const [hasServerBootstrapCompleted, setHasServerBootstrapCompleted] = useState(false)
 
+  const isDmsRoute = params.serverId === '@me'
   const normalizedServerId = normalizeUuid(params.serverId)
   const normalizedChannelId = normalizeUuid(params.channelId)
 
@@ -107,15 +108,22 @@ export function ChannelsPage() {
   }, [token, loadServers])
 
   useEffect(() => {
-    if (!token || normalizedServerId == null || !activeServer) {
+    if (!token || isDmsRoute || normalizedServerId == null || !activeServer) {
       return
     }
 
     void loadChannels(normalizedServerId)
-  }, [token, normalizedServerId, activeServer, loadChannels])
+  }, [token, isDmsRoute, normalizedServerId, activeServer, loadChannels])
 
   useEffect(() => {
-    if (!token || !hasServerBootstrapCompleted || normalizedServerId == null || activeServer || serversLoading) {
+    if (
+      !token ||
+      isDmsRoute ||
+      !hasServerBootstrapCompleted ||
+      normalizedServerId == null ||
+      activeServer ||
+      serversLoading
+    ) {
       return
     }
 
@@ -125,10 +133,10 @@ export function ChannelsPage() {
     }
 
     navigate('/channels', { replace: true })
-  }, [token, hasServerBootstrapCompleted, normalizedServerId, activeServer, serversLoading, servers, navigate])
+  }, [token, isDmsRoute, hasServerBootstrapCompleted, normalizedServerId, activeServer, serversLoading, servers, navigate])
 
   useEffect(() => {
-    if (!token || !activeServer) {
+    if (!token || isDmsRoute || !activeServer) {
       return
     }
 
@@ -144,22 +152,22 @@ export function ChannelsPage() {
     if (!channelExists) {
       navigate(`/channels/${activeServer.id}/${channels[0].id}`, { replace: true })
     }
-  }, [
-    token,
-    activeServer,
-    channels,
-    normalizedChannelId,
-    params.channelId,
-    navigate,
-  ])
+  }, [token, isDmsRoute, activeServer, channels, normalizedChannelId, params.channelId, navigate])
 
   useEffect(() => {
-    if (!token || !hasServerBootstrapCompleted || activeServer || serversLoading || normalizedServerId != null) {
+    if (
+      !token ||
+      isDmsRoute ||
+      !hasServerBootstrapCompleted ||
+      activeServer ||
+      serversLoading ||
+      normalizedServerId != null
+    ) {
       return
     }
 
     void discoverServers('')
-  }, [token, hasServerBootstrapCompleted, activeServer, serversLoading, normalizedServerId, discoverServers])
+  }, [token, isDmsRoute, hasServerBootstrapCompleted, activeServer, serversLoading, normalizedServerId, discoverServers])
 
   useEffect(() => {
     if (!token || !activeServer) {
@@ -231,14 +239,23 @@ export function ChannelsPage() {
 
             navigate(`/channels/${serverId}`)
           }}
+          onOpenDms={() => navigate('/channels/@me')}
           onOpenCreateServer={() => setIsCreateServerOpen(true)}
           onOpenDiscover={() => navigate('/channels')}
-          isDiscoverActive={activeServer == null}
+          isDmsActive={isDmsRoute}
+          isDiscoverActive={!isDmsRoute && activeServer == null}
           onLogout={handleLogout}
         />
 
         <main className="flex min-w-0 flex-1 overflow-hidden">
-          {activeServer ? (
+          {isDmsRoute ? (
+            <section className="flex min-w-0 flex-1 items-center justify-center p-6">
+              <div className="w-full max-w-2xl rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
+                <h2 className="text-lg font-semibold text-slate-900">Direct Messages</h2>
+                <p className="mt-2 text-sm text-slate-600">DMs will appear here once messaging is enabled.</p>
+              </div>
+            </section>
+          ) : activeServer ? (
             <>
               <ChannelsPanel
                 channels={channels}
@@ -254,6 +271,7 @@ export function ChannelsPage() {
                   setEditingChannel(null)
                   setIsCreateChannelOpen(true)
                 }}
+                canCreateChannels={activeServer.role !== 'USER'}
                 canManageChannels={activeServer.role === 'OWNER'}
                 onOpenUpdateChannel={(channel) => {
                   setIsCreateChannelOpen(false)

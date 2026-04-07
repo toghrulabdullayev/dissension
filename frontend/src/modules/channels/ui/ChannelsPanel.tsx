@@ -58,6 +58,7 @@ type ChannelsPanelProps = {
   onOpenCreateChannel: () => void
   panelCollapsed: boolean
   onPanelCollapsedChange: (collapsed: boolean) => void
+  canCreateChannels?: boolean
   canManageChannels?: boolean
   onOpenUpdateChannel?: (channel: Channel) => void
   onDeleteChannel?: (channel: Channel) => Promise<void>
@@ -97,6 +98,7 @@ export function ChannelsPanel({
   onOpenCreateChannel,
   panelCollapsed,
   onPanelCollapsedChange,
+  canCreateChannels = false,
   canManageChannels = false,
   onOpenUpdateChannel,
   onDeleteChannel,
@@ -113,6 +115,8 @@ export function ChannelsPanel({
     top: number
     left: number
   } | null>(null)
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false)
+  const [isLeavingServer, setIsLeavingServer] = useState(false)
   const [mobileDragOffset, setMobileDragOffset] = useState(0)
   const [isDraggingMobileDrawer, setIsDraggingMobileDrawer] = useState(false)
   const resizeStartXRef = useRef(0)
@@ -368,8 +372,7 @@ export function ChannelsPanel({
               <button
                 type="button"
                 onClick={() => {
-                  void onLeaveServer?.()
-                  closeMobileDrawer()
+                  setIsLeaveConfirmOpen(true)
                 }}
                 className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
               >
@@ -389,7 +392,7 @@ export function ChannelsPanel({
             <button
               type="button"
               onClick={() => {
-                void onLeaveServer?.()
+                setIsLeaveConfirmOpen(true)
               }}
               className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
             >
@@ -402,20 +405,22 @@ export function ChannelsPanel({
 
         <div className="flex items-center justify-between gap-1">
           <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
-          <button
-            type="button"
-            onClick={() => {
-              onOpenCreateChannel()
-              if (isMobileViewport) {
-                closeMobileDrawer()
-              }
-            }}
-            disabled={!hasActiveServer}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
-          >
-            <Plus className="h-3 w-3" />
-            New
-          </button>
+          {canCreateChannels ? (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenCreateChannel()
+                if (isMobileViewport) {
+                  closeMobileDrawer()
+                }
+              }}
+              disabled={!hasActiveServer}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+            >
+              <Plus className="h-3 w-3" />
+              New
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -590,6 +595,56 @@ export function ChannelsPanel({
               <div className="relative flex items-center gap-1.5 rounded-lg border border-slate-600/50 bg-slate-900 px-2 py-1.5 text-sm font-semibold text-slate-100 shadow-xl">
                 <span className="absolute -left-0.5 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-slate-600/50 bg-slate-900" />
                 <span>{tooltip.name}</span>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {isLeaveConfirmOpen
+        ? createPortal(
+            <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/40 p-4">
+              <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-4 shadow-2xl">
+                <h3 className="text-sm font-semibold text-slate-900">Leave server?</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  You will leave this server and can rejoin later from Discover.
+                </p>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsLeaveConfirmOpen(false)}
+                    disabled={isLeavingServer}
+                    className="inline-flex items-center rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!onLeaveServer || isLeavingServer) {
+                        return
+                      }
+
+                      setIsLeavingServer(true)
+
+                      try {
+                        await onLeaveServer()
+                        setIsLeaveConfirmOpen(false)
+                        if (isMobileViewport) {
+                          closeMobileDrawer()
+                        }
+                      } finally {
+                        setIsLeavingServer(false)
+                      }
+                    }}
+                    disabled={isLeavingServer}
+                    className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLeavingServer ? 'Leaving...' : 'Leave'}
+                  </button>
+                </div>
               </div>
             </div>,
             document.body,
