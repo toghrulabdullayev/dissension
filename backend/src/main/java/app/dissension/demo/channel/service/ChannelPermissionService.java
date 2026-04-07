@@ -9,15 +9,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ChannelPermissionService {
 
-    public void assertCanCreateChannel(ServerMembership membership) {
-        if (membership.getRole() == ServerRole.USER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to create channels");
-        }
+  public void assertCanCreateChannel(ServerMembership membership) {
+    if (membership.getRole() == ServerRole.USER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to create channels");
     }
+  }
 
-    public void assertCanManageChannel(ServerMembership membership) {
-        if (membership.getRole() != ServerRole.OWNER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can manage channels");
-        }
+  public void assertCanManageChannel(ServerMembership membership) {
+    if (membership.getRole() != ServerRole.OWNER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can manage channels");
     }
+  }
 }

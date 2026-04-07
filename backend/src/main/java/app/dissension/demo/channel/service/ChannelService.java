@@ -16,84 +16,81 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ChannelService {
 
-    private final AppChannelRepository appChannelRepository;
-    private final ServerMembershipService serverMembershipService;
-    private final ChannelPermissionService channelPermissionService;
+  private final AppChannelRepository appChannelRepository;
+  private final ServerMembershipService serverMembershipService;
+  private final ChannelPermissionService channelPermissionService;
 
-    public ChannelService(
-        AppChannelRepository appChannelRepository,
-        ServerMembershipService serverMembershipService,
-        ChannelPermissionService channelPermissionService
-    ) {
-        this.appChannelRepository = appChannelRepository;
-        this.serverMembershipService = serverMembershipService;
-        this.channelPermissionService = channelPermissionService;
-    }
+  public ChannelService(
+      AppChannelRepository appChannelRepository,
+      ServerMembershipService serverMembershipService,
+      ChannelPermissionService channelPermissionService) {
+    this.appChannelRepository = appChannelRepository;
+    this.serverMembershipService = serverMembershipService;
+    this.channelPermissionService = channelPermissionService;
+  }
 
-    @Transactional(readOnly = true)
-    public List<ChannelResponse> getChannelsForServer(UUID serverId, String username) {
-        serverMembershipService.requireMembership(serverId, username);
+  @Transactional(readOnly = true) // for read-only, atomic operations, improves performance
+  public List<ChannelResponse> getChannelsForServer(UUID serverId, String username) {
+    serverMembershipService.requireMembership(serverId, username);
 
-        return appChannelRepository.findByServerIdOrderByPositionAsc(serverId)
-            .stream()
-            .map(this::toResponse)
-            .toList();
-    }
+    return appChannelRepository.findByServerIdOrderByPositionAsc(serverId)
+        .stream()
+        .map(this::toResponse)
+        .toList();
+  }
 
-    @Transactional
-    public ChannelResponse createChannel(UUID serverId, String username, CreateChannelRequest request) {
-        ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
-        channelPermissionService.assertCanCreateChannel(membership);
+  @Transactional // atomic (all-or-nothing), for write operations (create, update, delete)
+  public ChannelResponse createChannel(UUID serverId, String username, CreateChannelRequest request) {
+    ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
+    channelPermissionService.assertCanCreateChannel(membership); // if user has privileges to create a channel (for ADMINS and OWNERS)
 
-        long nextPosition = appChannelRepository.countByServerId(serverId) + 1;
-        AppChannel channel = new AppChannel(
-            membership.getServer(),
-            request.name().trim(),
-            request.type(),
-            (int) nextPosition
-        );
+    long nextPosition = appChannelRepository.countByServerId(serverId) + 1;
+    AppChannel channel = new AppChannel(
+        membership.getServer(),
+        request.name().trim(),
+        request.type(),
+        (int) nextPosition);
 
-        AppChannel saved = appChannelRepository.save(channel);
-        return toResponse(saved);
-    }
+    AppChannel saved = appChannelRepository.save(channel);
+    return toResponse(saved);
+  }
 
-    @Transactional
-    public ChannelResponse updateChannel(
-        UUID serverId,
-        UUID channelId,
-        String username,
-        CreateChannelRequest request
-    ) {
-        ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
-        channelPermissionService.assertCanManageChannel(membership);
+  @Transactional
+  public ChannelResponse updateChannel(
+      UUID serverId,
+      UUID channelId,
+      String username,
+      CreateChannelRequest request) {
+    ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
+    channelPermissionService.assertCanManageChannel(membership); // if user can edit channels (for OWNERS)
 
-        AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+    // if channel exists in server
+    AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
 
-        channel.setName(request.name().trim());
-        channel.setType(request.type());
+    channel.setName(request.name().trim());
+    channel.setType(request.type());
 
-        AppChannel saved = appChannelRepository.save(channel);
-        return toResponse(saved);
-    }
+    AppChannel saved = appChannelRepository.save(channel);
+    return toResponse(saved);
+  }
 
-    @Transactional
-    public void deleteChannel(UUID serverId, UUID channelId, String username) {
-        ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
-        channelPermissionService.assertCanManageChannel(membership);
+  @Transactional
+  public void deleteChannel(UUID serverId, UUID channelId, String username) {
+    ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
+    channelPermissionService.assertCanManageChannel(membership);
 
-        AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
+    AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
 
-        appChannelRepository.delete(channel);
-    }
+    appChannelRepository.delete(channel);
+  }
 
-    private ChannelResponse toResponse(AppChannel channel) {
-        return new ChannelResponse(
-            channel.getId(),
-            channel.getName(),
-            channel.getType(),
-            channel.getPosition()
-        );
-    }
+  private ChannelResponse toResponse(AppChannel channel) {
+    return new ChannelResponse(
+        channel.getId(),
+        channel.getName(),
+        channel.getType(),
+        channel.getPosition());
+  }
 }

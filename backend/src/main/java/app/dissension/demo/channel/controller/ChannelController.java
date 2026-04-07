@@ -22,49 +22,49 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/servers/{serverId}/channels")
 public class ChannelController {
 
-    private final ChannelService channelService;
+  // composition (dependency injection)
+  private final ChannelService channelService;
 
-    public ChannelController(ChannelService channelService) {
-        this.channelService = channelService;
-    }
+  public ChannelController(ChannelService channelService) {
+    this.channelService = channelService;
+  }
+  // ==================================
 
-    @GetMapping
-    public ResponseEntity<List<ChannelResponse>> getServerChannels(
-        @PathVariable UUID serverId,
-        Principal principal
-    ) {
-        List<ChannelResponse> channels = channelService.getChannelsForServer(serverId, principal.getName());
-        return ResponseEntity.ok(channels);
-    }
+  @GetMapping // GET request
+  public ResponseEntity<List<ChannelResponse>> getServerChannels(
+      @PathVariable UUID serverId, // must match the {serverId}
+      Principal principal) {
+    List<ChannelResponse> channels = channelService.getChannelsForServer(serverId, principal.getName());
+    return ResponseEntity.ok(channels); // status 200, equals .status(HttpStatus.OK).body(updated)
+  }
 
-    @PostMapping
-    public ResponseEntity<ChannelResponse> createChannel(
-        @PathVariable UUID serverId,
-        Principal principal,
-        @Valid @RequestBody CreateChannelRequest request
-    ) {
-        ChannelResponse created = channelService.createChannel(serverId, principal.getName(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
+  @PostMapping // POST request
+  public ResponseEntity<ChannelResponse> createChannel(
+      @PathVariable UUID serverId, // must match the {serverId}
+      Principal principal, // principal represents the currently authenticated user
+      @Valid @RequestBody CreateChannelRequest request) // @RequestBody converts JSON body in request into Java object 
+  {
+    // .getName() takes the JWT subject (here: username)
+    ChannelResponse created = channelService.createChannel(serverId, principal.getName(), request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(created); // status 201
+  }
 
-    @PatchMapping("/{channelId}")
-    public ResponseEntity<ChannelResponse> updateChannel(
-        @PathVariable UUID serverId,
-        @PathVariable UUID channelId,
-        Principal principal,
-        @Valid @RequestBody CreateChannelRequest request
-    ) {
-        ChannelResponse updated = channelService.updateChannel(serverId, channelId, principal.getName(), request);
-        return ResponseEntity.ok(updated);
-    }
+  @PatchMapping("/{channelId}")
+  public ResponseEntity<ChannelResponse> updateChannel(
+      @PathVariable UUID serverId,
+      @PathVariable UUID channelId,
+      Principal principal,
+      @Valid @RequestBody CreateChannelRequest request) {
+    ChannelResponse updated = channelService.updateChannel(serverId, channelId, principal.getName(), request);
+    return ResponseEntity.ok(updated); // equals .status(HttpStatus.OK).body(updated)
+  }
 
-    @DeleteMapping("/{channelId}")
-    public ResponseEntity<Void> deleteChannel(
-        @PathVariable UUID serverId,
-        @PathVariable UUID channelId,
-        Principal principal
-    ) {
-        channelService.deleteChannel(serverId, channelId, principal.getName());
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{channelId}")
+  public ResponseEntity<Void> deleteChannel(
+      @PathVariable UUID serverId,
+      @PathVariable UUID channelId,
+      Principal principal) {
+    channelService.deleteChannel(serverId, channelId, principal.getName());
+    return ResponseEntity.noContent().build(); // status 204, has no body, should call .build()
+  }
 }

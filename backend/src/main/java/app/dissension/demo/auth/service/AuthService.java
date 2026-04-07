@@ -28,16 +28,19 @@ public class AuthService {
   }
 
   public AuthResponse signup(SignupRequest request) {
+    // remove extra spaces around
     String username = normalizeUsername(request.username());
 
     if (!request.password().equals(request.confirmPassword())) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Passwords do not match");
     }
 
+    // does username already exist
     if (appUserRepository.existsByUsername(username)) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Username is already taken");
     }
 
+    // creating and storing the user in db
     AppUser appUser = new AppUser(username, passwordEncoder.encode(request.password()));
     appUserRepository.save(appUser);
 
@@ -48,9 +51,11 @@ public class AuthService {
   public AuthResponse login(LoginRequest request) {
     String username = normalizeUsername(request.username());
 
+    // invalid username
     AppUser appUser = appUserRepository.findByUsername(username)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
+    // invalid password
     if (!passwordEncoder.matches(request.password(), appUser.getPasswordHash())) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
     }

@@ -6,11 +6,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CreateChannelRequest(
-    @NotBlank(message = "Channel name is required")
-    @Size(min = 2, max = 100, message = "Channel name must be between 2 and 100 characters")
-    String name,
+  // no whitespaces only, no empty strings, no null values
+  @NotBlank(message = "Channel name is required")
+  @Size(min = 2, max = 100, message = "Channel name must be between 2 and 100 characters")
+  String name,
 
-    @NotNull(message = "Channel type is required")
-    ChannelType type
+  // everything but null value
+  @NotNull(message = "Channel type is required")
+  ChannelType type
 ) {
 }
