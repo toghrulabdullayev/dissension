@@ -5,8 +5,7 @@ import app.dissension.demo.channel.dto.CreateChannelRequest;
 import app.dissension.demo.channel.entity.AppChannel;
 import app.dissension.demo.channel.repository.AppChannelRepository;
 import app.dissension.demo.server.entity.ServerMembership;
-import app.dissension.demo.server.model.ServerRole;
-import app.dissension.demo.server.service.ServerService;
+import app.dissension.demo.server.service.ServerMembershipService;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -18,16 +17,22 @@ import org.springframework.web.server.ResponseStatusException;
 public class ChannelService {
 
     private final AppChannelRepository appChannelRepository;
-    private final ServerService serverService;
+    private final ServerMembershipService serverMembershipService;
+    private final ChannelPermissionService channelPermissionService;
 
-    public ChannelService(AppChannelRepository appChannelRepository, ServerService serverService) {
+    public ChannelService(
+        AppChannelRepository appChannelRepository,
+        ServerMembershipService serverMembershipService,
+        ChannelPermissionService channelPermissionService
+    ) {
         this.appChannelRepository = appChannelRepository;
-        this.serverService = serverService;
+        this.serverMembershipService = serverMembershipService;
+        this.channelPermissionService = channelPermissionService;
     }
 
     @Transactional(readOnly = true)
     public List<ChannelResponse> getChannelsForServer(UUID serverId, String username) {
-        serverService.requireMembership(serverId, username);
+        serverMembershipService.requireMembership(serverId, username);
 
         return appChannelRepository.findByServerIdOrderByPositionAsc(serverId)
             .stream()
@@ -37,11 +42,8 @@ public class ChannelService {
 
     @Transactional
     public ChannelResponse createChannel(UUID serverId, String username, CreateChannelRequest request) {
-        ServerMembership membership = serverService.requireMembership(serverId, username);
-
-        if (membership.getRole() == ServerRole.USER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to create channels");
-        }
+        ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
+        channelPermissionService.assertCanCreateChannel(membership);
 
         long nextPosition = appChannelRepository.countByServerId(serverId) + 1;
         AppChannel channel = new AppChannel(
@@ -62,11 +64,8 @@ public class ChannelService {
         String username,
         CreateChannelRequest request
     ) {
-        ServerMembership membership = serverService.requireMembership(serverId, username);
-
-        if (membership.getRole() != ServerRole.OWNER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can update channels");
-        }
+        ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
+        channelPermissionService.assertCanManageChannel(membership);
 
         AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
@@ -80,11 +79,8 @@ public class ChannelService {
 
     @Transactional
     public void deleteChannel(UUID serverId, UUID channelId, String username) {
-        ServerMembership membership = serverService.requireMembership(serverId, username);
-
-        if (membership.getRole() != ServerRole.OWNER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can delete channels");
-        }
+        ServerMembership membership = serverMembershipService.requireMembership(serverId, username);
+        channelPermissionService.assertCanManageChannel(membership);
 
         AppChannel channel = appChannelRepository.findByIdAndServerId(channelId, serverId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Channel not found"));
