@@ -9,15 +9,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ServerMembershipRepository extends JpaRepository<ServerMembership, Long> {
 
-    List<ServerMembership> findByUserUsernameOrderByIdAsc(String username);
+  List<ServerMembership> findByUserUsernameOrderByIdAsc(String username);
 
-    List<ServerMembership> findByServerIdOrderByIdAsc(UUID serverId);
+  List<ServerMembership> findByServerIdOrderByIdAsc(UUID serverId);
 
-    Optional<ServerMembership> findByServerIdAndUserUsername(UUID serverId, String username);
+  Optional<ServerMembership> findByServerIdAndUserUsername(UUID serverId, String username);
 
-    Optional<ServerMembership> findByServerIdAndRole(UUID serverId, ServerRole role);
+  Optional<ServerMembership> findByServerIdAndRole(UUID serverId, ServerRole role);
 
-    Optional<ServerMembership> findFirstByServerIdAndRoleOrderByIdAsc(UUID serverId, ServerRole role);
+  Optional<ServerMembership> findFirstByServerIdAndRoleOrderByIdAsc(UUID serverId, ServerRole role);
 
-    long countByServerId(UUID serverId);
+  long countByServerId(UUID serverId);
 }

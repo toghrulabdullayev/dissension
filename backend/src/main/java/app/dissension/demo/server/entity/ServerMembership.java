@@ -15,9 +15,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+// Association pattern (User X is a member of Server Y with role Z)
 @Entity
 @Table(
     name = "server_memberships",
+    // prevents the same user from joining the same server more than once (uk = unique key)
     uniqueConstraints = {
         @UniqueConstraint(name = "uk_server_user_membership", columnNames = {"server_id", "user_id"})
     }

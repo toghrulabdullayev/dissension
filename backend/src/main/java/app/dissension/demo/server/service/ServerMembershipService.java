@@ -18,90 +18,89 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ServerMembershipService {
 
-    private final AppUserRepository appUserRepository;
-    private final AppServerRepository appServerRepository;
-    private final AppChannelRepository appChannelRepository;
-    private final ServerMembershipRepository serverMembershipRepository;
+  private final AppUserRepository appUserRepository;
+  private final AppServerRepository appServerRepository;
+  private final AppChannelRepository appChannelRepository;
+  private final ServerMembershipRepository serverMembershipRepository;
 
-    public ServerMembershipService(
-        AppUserRepository appUserRepository,
-        AppServerRepository appServerRepository,
-        AppChannelRepository appChannelRepository,
-        ServerMembershipRepository serverMembershipRepository
-    ) {
-        this.appUserRepository = appUserRepository;
-        this.appServerRepository = appServerRepository;
-        this.appChannelRepository = appChannelRepository;
-        this.serverMembershipRepository = serverMembershipRepository;
+  public ServerMembershipService(
+      AppUserRepository appUserRepository,
+      AppServerRepository appServerRepository,
+      AppChannelRepository appChannelRepository,
+      ServerMembershipRepository serverMembershipRepository) {
+    this.appUserRepository = appUserRepository;
+    this.appServerRepository = appServerRepository;
+    this.appChannelRepository = appChannelRepository;
+    this.serverMembershipRepository = serverMembershipRepository;
+  }
+
+  @Transactional
+  public ServerResponse joinServer(UUID serverId, String username) {
+    AppUser user = appUserRepository.findByUsername(username)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+    ServerMembership existingMembership = serverMembershipRepository
+        .findByServerIdAndUserUsername(serverId, username)
+        .orElse(null);
+
+    // if already in server
+    if (existingMembership != null) {
+      return toResponse(existingMembership);
     }
 
-    @Transactional
-    public ServerResponse joinServer(UUID serverId, String username) {
-        AppUser user = appUserRepository.findByUsername(username)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+    AppServer server = appServerRepository.findById(serverId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Server not found"));
 
-        ServerMembership existingMembership = serverMembershipRepository
-            .findByServerIdAndUserUsername(serverId, username)
-            .orElse(null);
+    ServerMembership membership = new ServerMembership(server, user, ServerRole.USER);
+    ServerMembership savedMembership = serverMembershipRepository.save(membership);
+    return toResponse(savedMembership);
+  }
 
-        if (existingMembership != null) {
-            return toResponse(existingMembership);
-        }
+  @Transactional
+  public void leaveServer(UUID serverId, String username) {
+    ServerMembership leavingMembership = requireMembership(serverId, username);
+    long membersBeforeLeave = serverMembershipRepository.countByServerId(serverId);
 
-        AppServer server = appServerRepository.findById(serverId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Server not found"));
-
-        ServerMembership membership = new ServerMembership(server, user, ServerRole.USER);
-        ServerMembership savedMembership = serverMembershipRepository.save(membership);
-        return toResponse(savedMembership);
+    if (membersBeforeLeave == 1L) {
+      serverMembershipRepository.delete(leavingMembership);
+      appChannelRepository.deleteAllByServerId(serverId);
+      appServerRepository.deleteById(serverId);
+      return;
     }
 
-    @Transactional
-    public void leaveServer(UUID serverId, String username) {
-        ServerMembership leavingMembership = requireMembership(serverId, username);
-        long membersBeforeLeave = serverMembershipRepository.countByServerId(serverId);
+    // when OWNER leaves, closest ADMIN becomes OWNER, if no ADMINs then USER claims OWNERship
+    if (leavingMembership.getRole() == ServerRole.OWNER) {
+      ServerMembership newOwner = serverMembershipRepository
+          .findFirstByServerIdAndRoleOrderByIdAsc(serverId, ServerRole.ADMIN)
+          .orElseGet(() -> serverMembershipRepository.findByServerIdOrderByIdAsc(serverId)
+              .stream()
+              .filter((membership) -> !membership.getUser().getUsername().equalsIgnoreCase(username))
+              .findFirst()
+              .orElseThrow(() -> new ResponseStatusException(
+                  HttpStatus.BAD_REQUEST,
+                  "Owner can leave only when at least one other member exists")));
 
-        if (membersBeforeLeave == 1L) {
-            serverMembershipRepository.delete(leavingMembership);
-            appChannelRepository.deleteAllByServerId(serverId);
-            appServerRepository.deleteById(serverId);
-            return;
-        }
-
-        if (leavingMembership.getRole() == ServerRole.OWNER) {
-            ServerMembership newOwner = serverMembershipRepository
-                .findFirstByServerIdAndRoleOrderByIdAsc(serverId, ServerRole.ADMIN)
-                .orElseGet(() -> serverMembershipRepository.findByServerIdOrderByIdAsc(serverId)
-                    .stream()
-                    .filter((membership) -> !membership.getUser().getUsername().equalsIgnoreCase(username))
-                    .findFirst()
-                    .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Owner can leave only when at least one other member exists"
-                    )));
-
-            newOwner.setRole(ServerRole.OWNER);
-            serverMembershipRepository.save(newOwner);
-        }
-
-        serverMembershipRepository.delete(leavingMembership);
+      newOwner.setRole(ServerRole.OWNER);
+      serverMembershipRepository.save(newOwner);
     }
 
-    @Transactional(readOnly = true)
-    public ServerMembership requireMembership(UUID serverId, String username) {
-        return serverMembershipRepository.findByServerIdAndUserUsername(serverId, username)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a member of this server"));
-    }
+    serverMembershipRepository.delete(leavingMembership);
+  }
 
-    private ServerResponse toResponse(ServerMembership membership) {
-        AppServer server = membership.getServer();
-        long members = serverMembershipRepository.countByServerId(server.getId());
-        return new ServerResponse(
-            server.getId(),
-            server.getName(),
-            server.getDescription(),
-            members,
-            membership.getRole()
-        );
-    }
+  @Transactional(readOnly = true)
+  public ServerMembership requireMembership(UUID serverId, String username) {
+    return serverMembershipRepository.findByServerIdAndUserUsername(serverId, username)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a member of this server"));
+  }
+
+  private ServerResponse toResponse(ServerMembership membership) {
+    AppServer server = membership.getServer();
+    long members = serverMembershipRepository.countByServerId(server.getId());
+    return new ServerResponse(
+        server.getId(),
+        server.getName(),
+        server.getDescription(),
+        members,
+        membership.getRole());
+  }
 }

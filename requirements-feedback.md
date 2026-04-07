@@ -16,7 +16,7 @@ ServerMembership.java:29
 Example:
 JwtAuthenticationFilter.java:19
 
-Meaningful class/variable names: ✅ Mostly satisfied.
+Meaningful class/variable names: ✅ Satisfied.
 Names are generally clear and domain-based (AppUser, ServerMembership, ChannelService, etc.).
 
 Proper packages: ✅ Satisfied.
@@ -30,6 +30,9 @@ At least 1 design pattern: ❌ not satisfied.
 UNLESS THE ONES PROVIDED BY SPRING BOOT COUNT:
   Repository pattern is clearly used via Spring Data repositories, e.g.:
   AppServerRepository.java:10
+
+  Association pattern
+  ServerMembership.java:18
   
   Template Method
   You extend OncePerRequestFilter and override only the hook method while the superclass controls the full algorithm skeleton:

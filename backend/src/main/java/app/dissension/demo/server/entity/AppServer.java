@@ -12,44 +12,44 @@ import org.hibernate.annotations.UuidGenerator;
 @Table(name = "app_servers")
 public class AppServer {
 
-    @Id
-    @GeneratedValue
-    @UuidGenerator
-    @Column(nullable = false, updatable = false)
-    private UUID id;
+  @Id
+  @GeneratedValue
+  @UuidGenerator
+  @Column(nullable = false, updatable = false)
+  private UUID id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
+  @Column(nullable = false, length = 100)
+  private String name;
 
-    @Column(length = 150)
-    private String description;
+  @Column(length = 150)
+  private String description;
 
-    protected AppServer() {
-        // Required by JPA.
-    }
+  protected AppServer() {
+    // Required by JPA.
+  }
 
-    public AppServer(String name, String description) {
-        this.name = name;
-        this.description = description;
-    }
+  public AppServer(String name, String description) {
+    this.name = name;
+    this.description = description;
+  }
 
-    public UUID getId() {
-        return id;
-    }
+  public UUID getId() {
+    return id;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+  public void setName(String name) {
+    this.name = name;
+  }
 
-    public String getDescription() {
-        return description;
-    }
+  public String getDescription() {
+    return description;
+  }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+  public void setDescription(String description) {
+    this.description = description;
+  }
 }

@@ -26,80 +26,75 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/servers")
 public class ServerController {
 
-    private final ServerService serverService;
+  private final ServerService serverService;
 
-    public ServerController(ServerService serverService) {
-        this.serverService = serverService;
-    }
+  public ServerController(ServerService serverService) {
+    this.serverService = serverService;
+  }
 
-    @GetMapping("/my")
-    public ResponseEntity<List<ServerResponse>> getMyServers(Principal principal) {
-        List<ServerResponse> servers = serverService.getServersForUser(principal.getName());
-        return ResponseEntity.ok(servers);
-    }
+  @GetMapping("/my")
+  public ResponseEntity<List<ServerResponse>> getMyServers(Principal principal) {
+    List<ServerResponse> servers = serverService.getServersForUser(principal.getName());
+    return ResponseEntity.ok(servers);
+  }
 
-    @GetMapping("/discover")
-    public ResponseEntity<List<DiscoverServerResponse>> discoverServers(
-        Principal principal,
-        @RequestParam(name = "query", required = false) String query
-    ) {
-        List<DiscoverServerResponse> servers = serverService.discoverServers(principal.getName(), query);
-        return ResponseEntity.ok(servers);
-    }
+  @GetMapping("/discover")
+  public ResponseEntity<List<DiscoverServerResponse>> discoverServers(
+      Principal principal,
+      @RequestParam(name = "query", required = false) String query // takes the query param named "query" with its value
+  ) {
+    List<DiscoverServerResponse> servers = serverService.discoverServers(principal.getName(), query);
+    return ResponseEntity.ok(servers);
+  }
 
-    @PostMapping("/{serverId}/join")
-    public ResponseEntity<ServerResponse> joinServer(@PathVariable UUID serverId, Principal principal) {
-        ServerResponse joined = serverService.joinServer(serverId, principal.getName());
-        return ResponseEntity.ok(joined);
-    }
+  @PostMapping("/{serverId}/join")
+  public ResponseEntity<ServerResponse> joinServer(@PathVariable UUID serverId, Principal principal) {
+    ServerResponse joined = serverService.joinServer(serverId, principal.getName());
+    return ResponseEntity.ok(joined);
+  }
 
-    @DeleteMapping("/{serverId}/leave")
-    public ResponseEntity<Void> leaveServer(@PathVariable UUID serverId, Principal principal) {
-        serverService.leaveServer(serverId, principal.getName());
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping("/{serverId}/leave")
+  public ResponseEntity<Void> leaveServer(@PathVariable UUID serverId, Principal principal) {
+    serverService.leaveServer(serverId, principal.getName());
+    return ResponseEntity.noContent().build();
+  }
 
-    @GetMapping("/{serverId}/members")
-    public ResponseEntity<List<ServerMemberResponse>> getServerMembers(
-        @PathVariable UUID serverId,
-        Principal principal
-    ) {
-        List<ServerMemberResponse> members = serverService.getServerMembers(serverId, principal.getName());
-        return ResponseEntity.ok(members);
-    }
+  @GetMapping("/{serverId}/members")
+  public ResponseEntity<List<ServerMemberResponse>> getServerMembers(
+      @PathVariable UUID serverId,
+      Principal principal) {
+    List<ServerMemberResponse> members = serverService.getServerMembers(serverId, principal.getName());
+    return ResponseEntity.ok(members);
+  }
 
-    @PatchMapping("/{serverId}/members/{memberUsername}/role")
-    public ResponseEntity<List<ServerMemberResponse>> updateServerMemberRole(
-        @PathVariable UUID serverId,
-        @PathVariable String memberUsername,
-        Principal principal,
-        @Valid @RequestBody UpdateServerMemberRoleRequest request
-    ) {
-        List<ServerMemberResponse> members = serverService.updateServerMemberRole(
-            serverId,
-            principal.getName(),
-            memberUsername,
-            request.role()
-        );
-        return ResponseEntity.ok(members);
-    }
+  @PatchMapping("/{serverId}/members/{memberUsername}/role")
+  public ResponseEntity<List<ServerMemberResponse>> updateServerMemberRole(
+      @PathVariable UUID serverId,
+      @PathVariable String memberUsername,
+      Principal principal,
+      @Valid @RequestBody UpdateServerMemberRoleRequest request) {
+    List<ServerMemberResponse> members = serverService.updateServerMemberRole(
+        serverId,
+        principal.getName(),
+        memberUsername,
+        request.role());
+    return ResponseEntity.ok(members);
+  }
 
-    @DeleteMapping("/{serverId}/members/{memberUsername}")
-    public ResponseEntity<List<ServerMemberResponse>> banServerMember(
-        @PathVariable UUID serverId,
-        @PathVariable String memberUsername,
-        Principal principal
-    ) {
-        List<ServerMemberResponse> members = serverService.banServerMember(serverId, principal.getName(), memberUsername);
-        return ResponseEntity.ok(members);
-    }
+  @DeleteMapping("/{serverId}/members/{memberUsername}")
+  public ResponseEntity<List<ServerMemberResponse>> banServerMember(
+      @PathVariable UUID serverId,
+      @PathVariable String memberUsername,
+      Principal principal) {
+    List<ServerMemberResponse> members = serverService.banServerMember(serverId, principal.getName(), memberUsername);
+    return ResponseEntity.ok(members);
+  }
 
-    @PostMapping
-    public ResponseEntity<ServerResponse> createServer(
-        Principal principal,
-        @Valid @RequestBody CreateServerRequest request
-    ) {
-        ServerResponse created = serverService.createServer(principal.getName(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
+  @PostMapping
+  public ResponseEntity<ServerResponse> createServer(
+      Principal principal,
+      @Valid @RequestBody CreateServerRequest request) {
+    ServerResponse created = serverService.createServer(principal.getName(), request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(created);
+  }
 }

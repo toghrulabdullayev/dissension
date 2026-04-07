@@ -15,129 +15,125 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ServerModerationService {
 
-    private final ServerMembershipRepository serverMembershipRepository;
-    private final ServerMembershipService serverMembershipService;
+  private final ServerMembershipRepository serverMembershipRepository;
+  private final ServerMembershipService serverMembershipService;
 
-    public ServerModerationService(
-        ServerMembershipRepository serverMembershipRepository,
-        ServerMembershipService serverMembershipService
-    ) {
-        this.serverMembershipRepository = serverMembershipRepository;
-        this.serverMembershipService = serverMembershipService;
+  public ServerModerationService(
+      ServerMembershipRepository serverMembershipRepository,
+      ServerMembershipService serverMembershipService) {
+    this.serverMembershipRepository = serverMembershipRepository;
+    this.serverMembershipService = serverMembershipService;
+  }
+
+  @Transactional(readOnly = true)
+  public List<ServerMemberResponse> getServerMembers(UUID serverId, String username) {
+    serverMembershipService.requireMembership(serverId, username);
+
+    return serverMembershipRepository.findByServerIdOrderByIdAsc(serverId)
+        .stream()
+        .sorted(
+            Comparator // compares enum values as int for sorting
+                .comparingInt((ServerMembership membership) -> roleSortOrder(membership.getRole()))
+                .thenComparing(
+                    (ServerMembership membership) -> membership.getUser().getUsername(),
+                    String.CASE_INSENSITIVE_ORDER))
+        .map((membership) -> new ServerMemberResponse(
+            membership.getUser().getUsername(),
+            membership.getUser().getImageUrl(),
+            membership.getRole()))
+        .toList();
+  }
+
+  @Transactional
+  public List<ServerMemberResponse> updateServerMemberRole(
+      UUID serverId,
+      String actorUsername,
+      String targetUsername,
+      ServerRole requestedRole) {
+    if (requestedRole != ServerRole.ADMIN && requestedRole != ServerRole.USER) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only ADMIN and USER roles are supported");
     }
 
-    @Transactional(readOnly = true)
-    public List<ServerMemberResponse> getServerMembers(UUID serverId, String username) {
-        serverMembershipService.requireMembership(serverId, username);
+    ServerMembership actorMembership = serverMembershipService.requireMembership(serverId, actorUsername);
+    ServerMembership targetMembership = serverMembershipRepository
+        .findByServerIdAndUserUsername(serverId, targetUsername)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
 
-        return serverMembershipRepository.findByServerIdOrderByIdAsc(serverId)
-            .stream()
-            .sorted(
-                Comparator
-                    .comparingInt((ServerMembership membership) -> roleSortOrder(membership.getRole()))
-                    .thenComparing(
-                        (ServerMembership membership) -> membership.getUser().getUsername(),
-                        String.CASE_INSENSITIVE_ORDER
-                    )
-            )
-            .map((membership) -> new ServerMemberResponse(
-                membership.getUser().getUsername(),
-                membership.getUser().getImageUrl(),
-                membership.getRole()
-            ))
-            .toList();
+    ensureCanUpdateRole(actorMembership, targetMembership);
+
+    if (targetMembership.getRole() != requestedRole) {
+      targetMembership.setRole(requestedRole);
+      serverMembershipRepository.save(targetMembership);
     }
 
-    @Transactional
-    public List<ServerMemberResponse> updateServerMemberRole(
-        UUID serverId,
-        String actorUsername,
-        String targetUsername,
-        ServerRole requestedRole
-    ) {
-        if (requestedRole != ServerRole.ADMIN && requestedRole != ServerRole.USER) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only ADMIN and USER roles are supported");
-        }
+    return getServerMembers(serverId, actorUsername);
+  }
 
-        ServerMembership actorMembership = serverMembershipService.requireMembership(serverId, actorUsername);
-        ServerMembership targetMembership = serverMembershipRepository
-            .findByServerIdAndUserUsername(serverId, targetUsername)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+  @Transactional
+  public List<ServerMemberResponse> banServerMember(UUID serverId, String actorUsername, String targetUsername) {
+    ServerMembership actorMembership = serverMembershipService.requireMembership(serverId, actorUsername);
+    ServerMembership targetMembership = serverMembershipRepository
+        .findByServerIdAndUserUsername(serverId, targetUsername)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
 
-        ensureCanUpdateRole(actorMembership, targetMembership);
+    ensureCanBan(actorMembership, targetMembership);
 
-        if (targetMembership.getRole() != requestedRole) {
-            targetMembership.setRole(requestedRole);
-            serverMembershipRepository.save(targetMembership);
-        }
+    serverMembershipRepository.delete(targetMembership);
+    return getServerMembers(serverId, actorUsername);
+  }
 
-        return getServerMembers(serverId, actorUsername);
+  private void ensureCanUpdateRole(ServerMembership actorMembership, ServerMembership targetMembership) {
+    ServerRole actorRole = actorMembership.getRole();
+    ServerRole targetRole = targetMembership.getRole();
+
+    if (actorRole != ServerRole.OWNER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owner can change member roles");
     }
 
-    @Transactional
-    public List<ServerMemberResponse> banServerMember(UUID serverId, String actorUsername, String targetUsername) {
-        ServerMembership actorMembership = serverMembershipService.requireMembership(serverId, actorUsername);
-        ServerMembership targetMembership = serverMembershipRepository
-            .findByServerIdAndUserUsername(serverId, targetUsername)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
-
-        ensureCanBan(actorMembership, targetMembership);
-
-        serverMembershipRepository.delete(targetMembership);
-        return getServerMembers(serverId, actorUsername);
+    if (actorMembership.getUser().getUsername().equalsIgnoreCase(targetMembership.getUser().getUsername())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot manage your own membership");
     }
 
-    private void ensureCanUpdateRole(ServerMembership actorMembership, ServerMembership targetMembership) {
-        ServerRole actorRole = actorMembership.getRole();
-        ServerRole targetRole = targetMembership.getRole();
-
-        if (actorRole != ServerRole.OWNER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owner can change member roles");
-        }
-
-        if (actorMembership.getUser().getUsername().equalsIgnoreCase(targetMembership.getUser().getUsername())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot manage your own membership");
-        }
-
-        if (targetRole == ServerRole.OWNER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner membership cannot be modified");
-        }
-
-        if (targetRole != ServerRole.ADMIN && targetRole != ServerRole.USER && targetRole != ServerRole.MOD) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported target role for role change");
-        }
+    if (targetRole == ServerRole.OWNER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner membership cannot be modified");
     }
 
-    private void ensureCanBan(ServerMembership actorMembership, ServerMembership targetMembership) {
-        ServerRole actorRole = actorMembership.getRole();
-        ServerRole targetRole = targetMembership.getRole();
+    if (targetRole != ServerRole.ADMIN && targetRole != ServerRole.USER && targetRole != ServerRole.MOD) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported target role for role change");
+    }
+  }
 
-        if (actorRole != ServerRole.OWNER && actorRole != ServerRole.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to ban members");
-        }
+  private void ensureCanBan(ServerMembership actorMembership, ServerMembership targetMembership) {
+    ServerRole actorRole = actorMembership.getRole();
+    ServerRole targetRole = targetMembership.getRole();
 
-        if (actorMembership.getUser().getUsername().equalsIgnoreCase(targetMembership.getUser().getUsername())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot ban yourself");
-        }
-
-        if (targetRole == ServerRole.OWNER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner membership cannot be modified");
-        }
-
-        if (actorRole == ServerRole.ADMIN && targetRole != ServerRole.USER) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only ban users");
-        }
+    if (actorRole != ServerRole.OWNER && actorRole != ServerRole.ADMIN) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to ban members");
     }
 
-    private int roleSortOrder(ServerRole role) {
-        if (role == ServerRole.OWNER) {
-            return 0;
-        }
-
-        if (role == ServerRole.ADMIN || role == ServerRole.MOD) {
-            return 1;
-        }
-
-        return 2;
+    if (actorMembership.getUser().getUsername().equalsIgnoreCase(targetMembership.getUser().getUsername())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot ban yourself");
     }
+
+    if (targetRole == ServerRole.OWNER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner membership cannot be modified");
+    }
+
+    if (actorRole == ServerRole.ADMIN && targetRole != ServerRole.USER) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admins can only ban users");
+    }
+  }
+
+  // returns int value for each enum value
+  private int roleSortOrder(ServerRole role) {
+    if (role == ServerRole.OWNER) {
+      return 0;
+    }
+
+    if (role == ServerRole.ADMIN || role == ServerRole.MOD) {
+      return 1;
+    }
+
+    return 2;
+  }
 }

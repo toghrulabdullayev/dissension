@@ -11,6 +11,7 @@ public interface AppServerRepository extends JpaRepository<AppServer, UUID> {
 
 	List<AppServer> findAllByOrderByIdAsc();
 
+  // JPQL custom query (JPQL unlike SQL operated on entities, not tables)
 	@Query(
 		"""
 		select s
