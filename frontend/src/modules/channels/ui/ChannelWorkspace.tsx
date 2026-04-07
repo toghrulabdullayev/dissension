@@ -10,6 +10,7 @@ import {
   Send,
   Video,
   VideoOff,
+  X,
 } from 'lucide-react'
 import {
   useEffect,
@@ -17,6 +18,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../../../shared/ui/button'
@@ -30,6 +32,7 @@ const MEMBERS_SIDEBAR_COLLAPSE_THRESHOLD = 150
 const MEMBERS_SIDEBAR_DESKTOP_BREAKPOINT = 768
 const MEMBERS_SIDEBAR_MOBILE_MIN_WIDTH = 240
 const MEMBERS_SIDEBAR_MOBILE_MAX_WIDTH = 360
+const MEMBERS_SIDEBAR_MOBILE_CLOSE_DRAG_THRESHOLD = 72
 const MESSAGE_COMPOSER_MAX_LINES = 3
 
 function getMembersSidebarMaxWidth(viewportWidth: number) {
@@ -107,16 +110,30 @@ export function ChannelWorkspace({
   )
   const [openMemberMenuFor, setOpenMemberMenuFor] = useState<string | null>(null)
   const [membersActionError, setMembersActionError] = useState<string | null>(null)
+  const [mobileMembersDragOffset, setMobileMembersDragOffset] = useState(0)
+  const [isDraggingMobileMembersDrawer, setIsDraggingMobileMembersDrawer] = useState(false)
   const resizeStartXRef = useRef(0)
   const resizeStartWidthRef = useRef(MEMBERS_SIDEBAR_DEFAULT_WIDTH)
   const chatScrollRegionRef = useRef<HTMLDivElement | null>(null)
   const messageTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const shouldScrollToBottomRef = useRef(false)
+  const mobileMembersDragStartXRef = useRef<number | null>(null)
+  const mobileMembersDragStartYRef = useRef<number | null>(null)
+  const mobileMembersDragStartOffsetRef = useRef(0)
   const isMobileViewport = viewportWidth < MEMBERS_SIDEBAR_DESKTOP_BREAKPOINT
   const maxMembersSidebarWidth = getMembersSidebarMaxWidth(viewportWidth)
   const effectiveMembersSidebarWidth = isMobileViewport
     ? getMembersSidebarDrawerWidth(viewportWidth)
     : Math.max(MEMBERS_SIDEBAR_MIN_WIDTH, Math.min(maxMembersSidebarWidth, membersSidebarWidth))
+
+  const closeMembersDrawer = () => {
+    setOpenMemberMenuFor(null)
+    setIsDraggingMobileMembersDrawer(false)
+    setMobileMembersDragOffset(0)
+    mobileMembersDragStartXRef.current = null
+    mobileMembersDragStartYRef.current = null
+    setMembersSidebarCollapsed(true)
+  }
 
   const normalizedUsername = (username ?? '').toLowerCase()
   const effectiveCurrentRole =
@@ -269,6 +286,17 @@ export function ChannelWorkspace({
     }
   }, [isMobileViewport, membersSidebarCollapsed])
 
+  useEffect(() => {
+    if (!membersSidebarCollapsed) {
+      return
+    }
+
+    setMobileMembersDragOffset(0)
+    setIsDraggingMobileMembersDrawer(false)
+    mobileMembersDragStartXRef.current = null
+    mobileMembersDragStartYRef.current = null
+  }, [membersSidebarCollapsed])
+
 
   const toggleMembersSidebar = () => {
     setMembersSidebarCollapsed((value) => {
@@ -280,6 +308,77 @@ export function ChannelWorkspace({
 
       return nextValue
     })
+  }
+
+  const startMobileMembersDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!isMobileViewport || membersSidebarCollapsed) {
+      return
+    }
+
+    const target = event.target as HTMLElement | null
+    if (target?.closest('button, input, textarea, select, a, [data-member-menu="true"]')) {
+      return
+    }
+
+    mobileMembersDragStartXRef.current = event.clientX
+    mobileMembersDragStartYRef.current = event.clientY
+    mobileMembersDragStartOffsetRef.current = mobileMembersDragOffset
+    setIsDraggingMobileMembersDrawer(false)
+  }
+
+  const updateMobileMembersDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (mobileMembersDragStartXRef.current == null || mobileMembersDragStartYRef.current == null) {
+      return
+    }
+
+    const deltaX = event.clientX - mobileMembersDragStartXRef.current
+    const deltaY = event.clientY - mobileMembersDragStartYRef.current
+
+    if (!isDraggingMobileMembersDrawer) {
+      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
+        return
+      }
+
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        mobileMembersDragStartXRef.current = null
+        mobileMembersDragStartYRef.current = null
+        return
+      }
+
+      setIsDraggingMobileMembersDrawer(true)
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }
+
+    const nextOffset = Math.max(0, mobileMembersDragStartOffsetRef.current + deltaX)
+
+    setMobileMembersDragOffset(nextOffset)
+    event.preventDefault()
+  }
+
+  const endMobileMembersDrag = () => {
+    if (mobileMembersDragStartXRef.current == null) {
+      return
+    }
+
+    const didDrag = isDraggingMobileMembersDrawer
+
+    const threshold = Math.min(MEMBERS_SIDEBAR_MOBILE_CLOSE_DRAG_THRESHOLD, effectiveMembersSidebarWidth * 0.28)
+    const shouldClose = mobileMembersDragOffset >= threshold
+
+    setIsDraggingMobileMembersDrawer(false)
+    mobileMembersDragStartXRef.current = null
+    mobileMembersDragStartYRef.current = null
+
+    if (!didDrag) {
+      return
+    }
+
+    if (shouldClose) {
+      closeMembersDrawer()
+      return
+    }
+
+    setMobileMembersDragOffset(0)
   }
 
   const shownMembersCount = Math.max(membersCount, serverMembers.length)
@@ -380,16 +479,42 @@ export function ChannelWorkspace({
     <aside
       className={[
         isMobileViewport
-          ? 'fixed inset-y-0 right-0 z-60 border-l border-slate-200 bg-slate-50 shadow-2xl'
+          ? [
+              'fixed inset-y-0 right-0 z-60 border-l border-slate-200 bg-slate-50 shadow-2xl will-change-transform',
+              isDraggingMobileMembersDrawer ? 'transition-none' : 'transition-transform duration-300 ease-out',
+              membersSidebarCollapsed ? 'pointer-events-none' : '',
+            ].join(' ')
           : 'border-l border-slate-200 bg-slate-50',
       ].join(' ')}
-      style={{ width: `${effectiveMembersSidebarWidth}px` }}
+      style={{
+        width: `${effectiveMembersSidebarWidth}px`,
+        transform: isMobileViewport
+          ? membersSidebarCollapsed
+            ? 'translateX(100%)'
+            : `translateX(${mobileMembersDragOffset}px)`
+          : undefined,
+        touchAction: isMobileViewport ? 'pan-y' : undefined,
+      }}
+      onPointerDown={isMobileViewport ? startMobileMembersDrag : undefined}
+      onPointerMove={isMobileViewport ? updateMobileMembersDrag : undefined}
+      onPointerUp={isMobileViewport ? endMobileMembersDrag : undefined}
+      onPointerCancel={isMobileViewport ? endMobileMembersDrag : undefined}
     >
       <div className="flex h-full flex-col">
         <div className="border-b border-slate-200 px-4 pb-3 pt-[17.5px]">
           <div className="flex min-h-6 items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-800">Members</h3>
             <span className="text-xs text-slate-500">{shownMembersCount}</span>
+            {isMobileViewport ? (
+              <button
+                type="button"
+                onClick={closeMembersDrawer}
+                aria-label="Close members drawer"
+                className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -643,27 +768,37 @@ export function ChannelWorkspace({
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {selectedChannelMessages.map((message) => {
+                    <div className="flex flex-col">
+                      {selectedChannelMessages.map((message, index) => {
                         const isCurrentUserMessage = message.author.toLowerCase() === normalizedUsername
+                        const previousMessage = index > 0 ? selectedChannelMessages[index - 1] : null
+                        const isSameAuthorAsPrevious =
+                          previousMessage != null &&
+                          previousMessage.author.toLowerCase() === message.author.toLowerCase()
+                        const showAuthorLabel =
+                          previousMessage == null ||
+                          previousMessage.author.toLowerCase() !== message.author.toLowerCase()
 
                         return (
                         <article
                           key={message.id}
                           className={[
-                            'max-w-2xl',
-                            isCurrentUserMessage ? 'ml-auto' : 'mr-auto',
+                            'max-w-full md:max-w-2xl',
+                            index === 0 ? '' : isSameAuthorAsPrevious ? 'mt-1' : 'mt-3',
+                            isCurrentUserMessage ? 'self-end' : 'self-start',
                           ].join(' ')}
                         >
-                          <p
-                            className={[
-                              'mb-1 text-xs font-semibold text-slate-500',
-                              isCurrentUserMessage ? 'text-right' : '',
-                            ].join(' ')}
-                          >
-                            {message.author}
-                          </p>
-                          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 break-words [overflow-wrap:anywhere]">
+                          {showAuthorLabel ? (
+                            <p
+                              className={[
+                                'mb-1 text-xs font-semibold text-slate-500',
+                                isCurrentUserMessage ? 'text-right' : '',
+                              ].join(' ')}
+                            >
+                              {message.author}
+                            </p>
+                          ) : null}
+                          <div className="max-w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 whitespace-pre-wrap break-all">
                             {message.content}
                           </div>
                         </article>
@@ -720,17 +855,17 @@ export function ChannelWorkspace({
       ) : null}
       </section>
 
-      {!membersSidebarCollapsed && isMobileViewport
+      {isMobileViewport
         ? createPortal(
             <>
               <button
                 type="button"
                 aria-label="Close members drawer"
-                onClick={() => {
-                  setOpenMemberMenuFor(null)
-                  setMembersSidebarCollapsed(true)
-                }}
-                className="fixed inset-0 z-55 bg-slate-900/20"
+                onClick={closeMembersDrawer}
+                className={[
+                  'fixed inset-0 z-55 bg-slate-900/20 transition-opacity duration-300',
+                  membersSidebarCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
+                ].join(' ')}
               />
               {membersSidebarContent}
             </>,

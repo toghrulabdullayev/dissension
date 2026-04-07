@@ -1,6 +1,12 @@
-import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { createPortal } from 'react-dom'
-import { Hash, Info, MoreHorizontal, Phone, Plus } from 'lucide-react'
+import { Hash, Info, MoreHorizontal, Phone, Plus, X } from 'lucide-react'
 import type { Channel, ChannelType } from '../model/types'
 
 const CHANNELS_PANEL_DEFAULT_WIDTH = 288
@@ -10,6 +16,7 @@ const CHANNELS_PANEL_COLLAPSE_THRESHOLD = 170
 const CHANNELS_PANEL_DESKTOP_BREAKPOINT = 768
 const CHANNELS_PANEL_MOBILE_MIN_WIDTH = 240
 const CHANNELS_PANEL_MOBILE_MAX_WIDTH = 360
+const CHANNELS_PANEL_MOBILE_CLOSE_DRAG_THRESHOLD = 72
 
 function getChannelsPanelMaxWidth(viewportWidth: number) {
   if (viewportWidth >= 1440) {
@@ -106,13 +113,28 @@ export function ChannelsPanel({
     top: number
     left: number
   } | null>(null)
+  const [mobileDragOffset, setMobileDragOffset] = useState(0)
+  const [isDraggingMobileDrawer, setIsDraggingMobileDrawer] = useState(false)
   const resizeStartXRef = useRef(0)
   const resizeStartWidthRef = useRef(CHANNELS_PANEL_DEFAULT_WIDTH)
+  const mobileDragStartXRef = useRef<number | null>(null)
+  const mobileDragStartYRef = useRef<number | null>(null)
+  const mobileDragStartOffsetRef = useRef(0)
   const isMobileViewport = viewportWidth < CHANNELS_PANEL_DESKTOP_BREAKPOINT
   const maxPanelWidth = getChannelsPanelMaxWidth(viewportWidth)
   const effectivePanelWidth = isMobileViewport
     ? getChannelsPanelDrawerWidth(viewportWidth)
     : Math.max(CHANNELS_PANEL_MIN_WIDTH, Math.min(maxPanelWidth, panelWidth))
+
+  const closeMobileDrawer = () => {
+    setOpenChannelMenuFor(null)
+    hideChannelTooltip()
+    setIsDraggingMobileDrawer(false)
+    setMobileDragOffset(0)
+    mobileDragStartXRef.current = null
+    mobileDragStartYRef.current = null
+    onPanelCollapsedChange(true)
+  }
 
   const showChannelTooltip = (name: string, element: HTMLElement) => {
     const rect = element.getBoundingClientRect()
@@ -180,6 +202,10 @@ export function ChannelsPanel({
     const timeout = window.setTimeout(() => {
       setTooltip(null)
       setOpenChannelMenuFor(null)
+      setMobileDragOffset(0)
+      setIsDraggingMobileDrawer(false)
+      mobileDragStartXRef.current = null
+      mobileDragStartYRef.current = null
     }, 0)
 
     return () => {
@@ -234,7 +260,78 @@ export function ChannelsPanel({
     }
   }, [openChannelMenuFor])
 
-  if (panelCollapsed) {
+  const startMobileDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!isMobileViewport || panelCollapsed) {
+      return
+    }
+
+    const target = event.target as HTMLElement | null
+    if (target?.closest('button, input, textarea, select, a, [data-channel-menu="true"]')) {
+      return
+    }
+
+    mobileDragStartXRef.current = event.clientX
+    mobileDragStartYRef.current = event.clientY
+    mobileDragStartOffsetRef.current = mobileDragOffset
+    setIsDraggingMobileDrawer(false)
+  }
+
+  const updateMobileDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (mobileDragStartXRef.current == null || mobileDragStartYRef.current == null) {
+      return
+    }
+
+    const deltaX = event.clientX - mobileDragStartXRef.current
+    const deltaY = event.clientY - mobileDragStartYRef.current
+
+    if (!isDraggingMobileDrawer) {
+      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
+        return
+      }
+
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        mobileDragStartXRef.current = null
+        mobileDragStartYRef.current = null
+        return
+      }
+
+      setIsDraggingMobileDrawer(true)
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }
+
+    const nextOffset = Math.min(0, mobileDragStartOffsetRef.current + deltaX)
+
+    setMobileDragOffset(nextOffset)
+    event.preventDefault()
+  }
+
+  const endMobileDrag = () => {
+    if (mobileDragStartXRef.current == null) {
+      return
+    }
+
+    const didDrag = isDraggingMobileDrawer
+
+    const threshold = Math.min(CHANNELS_PANEL_MOBILE_CLOSE_DRAG_THRESHOLD, effectivePanelWidth * 0.28)
+    const shouldClose = Math.abs(mobileDragOffset) >= threshold
+
+    setIsDraggingMobileDrawer(false)
+    mobileDragStartXRef.current = null
+    mobileDragStartYRef.current = null
+
+    if (!didDrag) {
+      return
+    }
+
+    if (shouldClose) {
+      closeMobileDrawer()
+      return
+    }
+
+    setMobileDragOffset(0)
+  }
+
+  if (panelCollapsed && !isMobileViewport) {
     return null
   }
 
@@ -242,21 +339,63 @@ export function ChannelsPanel({
     <section
       className={[
         isMobileViewport
-          ? 'fixed inset-y-0 left-0 z-50 flex max-w-[calc(100vw-1rem)] flex-col border-r border-slate-200 bg-white shadow-2xl'
+          ? [
+              'fixed inset-y-0 left-0 z-50 flex max-w-[calc(100vw-1rem)] flex-col border-r border-slate-200 bg-white shadow-2xl will-change-transform',
+              isDraggingMobileDrawer ? 'transition-none' : 'transition-transform duration-300 ease-out',
+              panelCollapsed ? 'pointer-events-none' : '',
+            ].join(' ')
           : 'flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white',
       ].join(' ')}
-      style={{ width: `${effectivePanelWidth}px` }}
+      style={{
+        width: `${effectivePanelWidth}px`,
+        transform: isMobileViewport
+          ? panelCollapsed
+            ? 'translateX(-100%)'
+            : `translateX(${mobileDragOffset}px)`
+          : undefined,
+        touchAction: isMobileViewport ? 'pan-y' : undefined,
+      }}
+      onPointerDown={isMobileViewport ? startMobileDrag : undefined}
+      onPointerMove={isMobileViewport ? updateMobileDrag : undefined}
+      onPointerUp={isMobileViewport ? endMobileDrag : undefined}
+      onPointerCancel={isMobileViewport ? endMobileDrag : undefined}
     >
       <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-slate-800">{serverName}</p>
-          <button
-            type="button"
-            onClick={() => onLeaveServer?.()}
-            className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
-          >
-            Leave
-          </button>
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{serverName}</p>
+          {isMobileViewport ? (
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void onLeaveServer?.()
+                  closeMobileDrawer()
+                }}
+                className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+              >
+                Leave
+              </button>
+
+              <button
+                type="button"
+                onClick={closeMobileDrawer}
+                aria-label="Close channels drawer"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void onLeaveServer?.()
+              }}
+              className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+            >
+              Leave
+            </button>
+          )}
         </div>
 
         <div className="-mx-4 my-3 border-t border-slate-200" />
@@ -265,7 +404,12 @@ export function ChannelsPanel({
           <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
           <button
             type="button"
-            onClick={onOpenCreateChannel}
+            onClick={() => {
+              onOpenCreateChannel()
+              if (isMobileViewport) {
+                closeMobileDrawer()
+              }
+            }}
             disabled={!hasActiveServer}
             className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
           >
@@ -360,6 +504,9 @@ export function ChannelsPanel({
                           onClick={() => {
                             onOpenUpdateChannel?.(channel)
                             setOpenChannelMenuFor(null)
+                            if (isMobileViewport) {
+                              closeMobileDrawer()
+                            }
                           }}
                         >
                           Update channel
@@ -377,6 +524,9 @@ export function ChannelsPanel({
 
                             try {
                               await onDeleteChannel(channel)
+                              if (isMobileViewport) {
+                                closeMobileDrawer()
+                              }
                             } catch (error) {
                               setActionError(
                                 error instanceof Error ? error.message : `Failed to delete ${channel.name}`,
@@ -409,12 +559,11 @@ export function ChannelsPanel({
               <button
                 type="button"
                 aria-label="Close channels drawer"
-                onClick={() => {
-                  setOpenChannelMenuFor(null)
-                  hideChannelTooltip()
-                  onPanelCollapsedChange(true)
-                }}
-                className="fixed inset-0 z-40 bg-slate-900/20"
+                onClick={closeMobileDrawer}
+                className={[
+                  'fixed inset-0 z-40 bg-slate-900/20 transition-opacity duration-300',
+                  panelCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
+                ].join(' ')}
               />
               {panelContent}
             </>,

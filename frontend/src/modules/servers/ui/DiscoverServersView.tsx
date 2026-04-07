@@ -32,13 +32,27 @@ export function DiscoverServersView({
 }: DiscoverServersViewProps) {
   const [joiningServerId, setJoiningServerId] = useState<string | null>(null)
 
+  const handleJoinServer = async (serverId: string, alreadyJoined: boolean) => {
+    if (alreadyJoined || joiningServerId != null) {
+      return
+    }
+
+    setJoiningServerId(serverId)
+
+    try {
+      await onJoinServer(serverId)
+    } finally {
+      setJoiningServerId(null)
+    }
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     await onSearch()
   }
 
   return (
-    <section className="flex flex-1 flex-col p-6">
+    <section className="flex flex-1 flex-col px-4 py-6">
       <div className="mb-5 rounded-md border border-slate-200 bg-slate-50 p-4">
         <p className="text-xs uppercase tracking-wide text-slate-500">Discover Servers</p>
         <h2 className="mt-1 text-xl font-semibold">Find communities by name or description</h2>
@@ -69,7 +83,15 @@ export function DiscoverServersView({
           {servers.map((server) => (
             <Card
               key={server.id}
-              className="group mx-auto flex h-96 w-[90%] flex-col overflow-hidden rounded-lg border-slate-200 p-0 shadow-sm transition-[border-color,box-shadow] duration-300 hover:border-slate-400 hover:shadow-md"
+              className={[
+                'group flex h-96 w-full flex-col overflow-hidden rounded-lg p-0 shadow-sm transition-[border-color,box-shadow,background-color] duration-300',
+                server.joined
+                  ? 'cursor-default border-slate-300 bg-slate-50/60 hover:border-slate-300 hover:shadow-sm'
+                  : 'cursor-pointer border-slate-200 hover:border-slate-400 hover:shadow-md',
+              ].join(' ')}
+              onClick={() => {
+                void handleJoinServer(server.id, server.joined)
+              }}
             >
               <div className="relative z-10 h-[8.8rem] border-b border-slate-200 bg-slate-200">
                 <div className="absolute inset-0 flex items-center justify-center gap-1.5 text-slate-500">
@@ -82,10 +104,18 @@ export function DiscoverServersView({
                 </div>
               </div>
 
-              <div className="relative z-0 flex flex-1 flex-col bg-white px-4 pb-12 pt-11">
-                <div className="mb-1.5 flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+              <div className="relative z-0 flex flex-1 flex-col px-4 pb-12 pt-11">
+                <div className="mb-1.5 flex items-center gap-2">
                   <h3 className="line-clamp-1 text-xl font-bold leading-tight">{server.name}</h3>
+                  {server.joined ? (
+                    <span className="ml-auto rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                      Joined
+                    </span>
+                  ) : joiningServerId === server.id ? (
+                    <span className="ml-auto rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                      Joining...
+                    </span>
+                  ) : null}
                 </div>
 
                 <p className="mb-3 text-xs text-slate-600">Owner: {server.owner}</p>
@@ -94,37 +124,12 @@ export function DiscoverServersView({
                   {normalizeDescription(server.description)}
                 </p>
 
-                <div className="absolute bottom-3 left-4 z-10 -translate-x-2 translate-y-2 opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-7 px-3 text-xs"
-                    disabled={server.joined || joiningServerId === server.id}
-                    onClick={async () => {
-                      if (server.joined || joiningServerId != null) {
-                        return
-                      }
-
-                      setJoiningServerId(server.id)
-
-                      try {
-                        await onJoinServer(server.id)
-                      } finally {
-                        setJoiningServerId(null)
-                      }
-                    }}
-                  >
-                    {server.joined
-                      ? 'Joined'
-                      : joiningServerId === server.id
-                        ? 'Joining...'
-                        : 'Join'}
-                  </Button>
+                <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-y-1 text-sm leading-4 text-slate-600">
+                  <p className="shrink-0 whitespace-nowrap text-left">{server.onlineMembers} online</p>
+                  <p className="ml-auto shrink-0 whitespace-nowrap text-right max-[360px]:ml-0 max-[360px]:w-full max-[360px]:text-left">
+                    {server.members} members
+                  </p>
                 </div>
-
-                <p className="absolute bottom-4 left-28 right-4 text-right text-sm text-slate-600">
-                  {server.onlineMembers} online • {server.members} members
-                </p>
               </div>
             </Card>
           ))}
