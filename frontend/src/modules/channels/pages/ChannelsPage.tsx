@@ -57,6 +57,7 @@ export function ChannelsPage() {
   const [discoverQuery, setDiscoverQuery] = useState('')
   const [serverMembers, setServerMembers] = useState<ServerMember[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
+  const [hasServerBootstrapCompleted, setHasServerBootstrapCompleted] = useState(false)
 
   const normalizedServerId = normalizeUuid(params.serverId)
   const normalizedChannelId = normalizeUuid(params.channelId)
@@ -84,10 +85,25 @@ export function ChannelsPage() {
 
   useEffect(() => {
     if (!token) {
+      setHasServerBootstrapCompleted(false)
       return
     }
 
-    void loadServers()
+    let cancelled = false
+
+    void (async () => {
+      try {
+        await loadServers()
+      } finally {
+        if (!cancelled) {
+          setHasServerBootstrapCompleted(true)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [token, loadServers])
 
   useEffect(() => {
@@ -99,7 +115,7 @@ export function ChannelsPage() {
   }, [token, normalizedServerId, activeServer, loadChannels])
 
   useEffect(() => {
-    if (!token || normalizedServerId == null || activeServer || serversLoading) {
+    if (!token || !hasServerBootstrapCompleted || normalizedServerId == null || activeServer || serversLoading) {
       return
     }
 
@@ -109,7 +125,7 @@ export function ChannelsPage() {
     }
 
     navigate('/channels', { replace: true })
-  }, [token, normalizedServerId, activeServer, serversLoading, servers, navigate])
+  }, [token, hasServerBootstrapCompleted, normalizedServerId, activeServer, serversLoading, servers, navigate])
 
   useEffect(() => {
     if (!token || !activeServer) {
@@ -138,12 +154,12 @@ export function ChannelsPage() {
   ])
 
   useEffect(() => {
-    if (!token || activeServer || serversLoading || normalizedServerId != null) {
+    if (!token || !hasServerBootstrapCompleted || activeServer || serversLoading || normalizedServerId != null) {
       return
     }
 
     void discoverServers('')
-  }, [token, activeServer, serversLoading, normalizedServerId, discoverServers])
+  }, [token, hasServerBootstrapCompleted, activeServer, serversLoading, normalizedServerId, discoverServers])
 
   useEffect(() => {
     if (!token || !activeServer) {

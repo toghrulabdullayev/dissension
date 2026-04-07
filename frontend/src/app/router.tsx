@@ -1,5 +1,6 @@
 import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { RequireAuth } from './RequireAuth'
+import { RequireGuest } from './RequireGuest'
 import { useAuthStore } from '../modules/auth/model/authStore'
 import { LoginPage } from '../modules/auth/pages/LoginPage'
 import { SignupPage } from '../modules/auth/pages/SignupPage'
@@ -18,11 +19,19 @@ const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <LoginPage />,
+    element: (
+      <RequireGuest>
+        <LoginPage />
+      </RequireGuest>
+    ),
   },
   {
     path: '/signup',
-    element: <SignupPage />,
+    element: (
+      <RequireGuest>
+        <SignupPage />
+      </RequireGuest>
+    ),
   },
   {
     path: '/channels',

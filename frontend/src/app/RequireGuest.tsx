@@ -1,16 +1,15 @@
 import { useEffect, type ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '../modules/auth/model/authStore'
 import { isTokenActive } from '../modules/auth/model/token'
 
-type RequireAuthProps = {
+type RequireGuestProps = {
   children: ReactNode
 }
 
-export function RequireAuth({ children }: RequireAuthProps) {
+export function RequireGuest({ children }: RequireGuestProps) {
   const token = useAuthStore((state) => state.token)
   const clearSession = useAuthStore((state) => state.clearSession)
-  const location = useLocation()
   const hasValidToken = isTokenActive(token)
 
   useEffect(() => {
@@ -19,8 +18,8 @@ export function RequireAuth({ children }: RequireAuthProps) {
     }
   }, [token, hasValidToken, clearSession])
 
-  if (!hasValidToken) {
-    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />
+  if (hasValidToken) {
+    return <Navigate to="/channels" replace />
   }
 
   return <>{children}</>

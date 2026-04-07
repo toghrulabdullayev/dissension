@@ -1,4 +1,5 @@
 import { useAuthStore } from '../../auth/model/authStore'
+import { isTokenActive } from '../../auth/model/token'
 import type { DiscoverServer, Server, ServerMember } from '../model/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
@@ -9,10 +10,15 @@ type CreateServerPayload = {
 }
 
 function getAuthHeaders(): HeadersInit {
-  const token = useAuthStore.getState().token
+  const authState = useAuthStore.getState()
+  const token = authState.token
 
-  if (!token) {
-    throw new Error('You must be logged in to access server data.')
+  if (!isTokenActive(token)) {
+    if (token) {
+      authState.clearSession()
+    }
+
+    throw new Error('Your session has expired. Please sign in again.')
   }
 
   return {
@@ -29,6 +35,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   })
+
+  if (response.status === 401) {
+    useAuthStore.getState().clearSession()
+    throw new Error('Your session has expired. Please sign in again.')
+  }
 
   if (!response.ok) {
     const body = await response.text()
