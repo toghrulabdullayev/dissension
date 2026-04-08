@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import org.hibernate.Hibernate;
 import org.hibernate.annotations.UuidGenerator;
 
 @Entity
@@ -77,5 +78,24 @@ public class AppChannel {
 
   public int getPosition() {
     return position;
+  }
+
+  @Override
+  public final boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+
+    if (object == null || Hibernate.getClass(this) != Hibernate.getClass(object)) {
+      return false;
+    }
+
+    AppChannel other = (AppChannel) object;
+    return id != null && id.equals(other.id);
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hibernate.getClass(this).hashCode();
   }
 }

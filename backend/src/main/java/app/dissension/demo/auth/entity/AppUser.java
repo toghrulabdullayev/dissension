@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.Hibernate;
 
 @Entity // JPA Entity (maps instances of this class to records in a database table)
 @Table(name = "app_users") // speaks for itself
@@ -61,5 +62,24 @@ public class AppUser {
 
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
+  }
+
+  @Override
+  public final boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+
+    if (object == null || Hibernate.getClass(this) != Hibernate.getClass(object)) {
+      return false;
+    }
+
+    AppUser other = (AppUser) object;
+    return id != null && id.equals(other.id);
+  }
+
+  @Override
+  public final int hashCode() {
+    return Hibernate.getClass(this).hashCode();
   }
 }
