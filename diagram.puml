@@ -1,0 +1,72 @@
+@startuml diagram
+skinparam linetype polyline
+
+' Spring Boot classes
+'!gen_java app.dissension.demo.auth.config.JwtProperties
+'!gen_java app.dissension.demo.auth.config.SecurityConfig
+'!gen_java app.dissension.demo.auth.controller.AuthController
+'!gen_java app.dissension.demo.auth.dto.AuthResponse
+'!gen_java app.dissension.demo.auth.dto.ErrorResponse
+'!gen_java app.dissension.demo.auth.dto.LoginRequest
+'!gen_java app.dissension.demo.auth.dto.SignupRequest
+'!gen_java app.dissension.demo.auth.entity.AppUser
+'!gen_java app.dissension.demo.auth.exception.ApiExceptionHandler
+'!gen_java app.dissension.demo.auth.repository.AppUserRepository
+'!gen_java app.dissension.demo.auth.security.CustomUserDetailsService
+'!gen_java app.dissension.demo.auth.security.JwtAuthenticationFilter
+'!gen_java app.dissension.demo.auth.security.JwtService
+'!gen_java app.dissension.demo.auth.service.AuthService
+'!gen_java app.dissension.demo.channel.controller.ChannelController
+'!gen_java app.dissension.demo.channel.dto.ChannelResponse
+'!gen_java app.dissension.demo.channel.dto.CreateChannelRequest
+'!gen_java app.dissension.demo.channel.entity.AppChannel
+'!gen_java app.dissension.demo.channel.model.ChannelType
+'!gen_java app.dissension.demo.channel.repository.AppChannelRepository
+'!gen_java app.dissension.demo.channel.service.ChannelPermissionService
+'!gen_java app.dissension.demo.channel.service.ChannelService
+'!gen_java app.dissension.demo.chat.controller.ChatController
+'!gen_java app.dissension.demo.chat.dto.ChatMessageResponse
+'!gen_java app.dissension.demo.chat.dto.SendChatMessageRequest
+'!gen_java app.dissension.demo.chat.entity.ChatMessage
+'!gen_java app.dissension.demo.chat.repository.ChatMessageRepository
+'!gen_java app.dissension.demo.chat.service.AbstractChannelMessagePolicy
+'!gen_java app.dissension.demo.chat.service.ChatChannelMessagePolicy
+'!gen_java app.dissension.demo.chat.service.ChatMessageService
+'!gen_java app.dissension.demo.chat.service.InfoChannelMessagePolicy
+'!gen_java app.dissension.demo.chat.service.PresenceService
+'!gen_java app.dissension.demo.chat.socket.event.AbstractChatEvent
+'!gen_java app.dissension.demo.chat.socket.event.ChannelMessageCreatedEvent
+'!gen_java app.dissension.demo.chat.socket.event.ChatEventListener
+'!gen_java app.dissension.demo.chat.socket.event.ChatEventPublisher
+'!gen_java app.dissension.demo.chat.socket.event.PresenceServerUpdatedEvent
+'!gen_java app.dissension.demo.chat.socket.event.PresenceServerUpdatePayload
+'!gen_java app.dissension.demo.chat.socket.event.ServerMembersUpdatedEvent
+'!gen_java app.dissension.demo.chat.socket.event.ServerMembersUpdatedPayload
+'!gen_java app.dissension.demo.chat.socket.event.TargetedChatEvent
+'!gen_java app.dissension.demo.chat.socket.event.UserBannedFromServerEvent
+'!gen_java app.dissension.demo.chat.socket.event.UserBannedFromServerPayload
+'!gen_java app.dissension.demo.chat.socket.observer.WebSocketChatEventListener
+'!gen_java app.dissension.demo.chat.socket.session.AbstractSessionRegistry
+'!gen_java app.dissension.demo.chat.socket.session.ChatWebSocketSessionRegistry
+'!gen_java app.dissension.demo.chat.socket.ChatHandshakeInterceptor
+'!gen_java app.dissension.demo.chat.socket.ChatWebSocketConfig
+'!gen_java app.dissension.demo.chat.socket.ChatWebSocketHandler
+'!gen_java app.dissension.demo.chat.socket.ChatWebSocketHandler$SocketCommand
+'!gen_java app.dissension.demo.server.controller.ServerController
+'!gen_java app.dissension.demo.server.dto.CreateServerRequest
+'!gen_java app.dissension.demo.server.dto.DiscoverServerResponse
+'!gen_java app.dissension.demo.server.dto.ServerMemberResponse
+'!gen_java app.dissension.demo.server.dto.ServerResponse
+'!gen_java app.dissension.demo.server.dto.UpdateServerMemberRoleRequest
+'!gen_java app.dissension.demo.server.entity.AppServer
+'!gen_java app.dissension.demo.server.entity.ServerMembership
+'!gen_java app.dissension.demo.server.model.ServerRole
+'!gen_java app.dissension.demo.server.repository.AppServerRepository
+'!gen_java app.dissension.demo.server.repository.ServerMembershipRepository
+'!gen_java app.dissension.demo.server.service.ServerMembershipService
+'!gen_java app.dissension.demo.server.service.ServerModerationService
+'!gen_java app.dissension.demo.server.service.ServerService
+'!gen_java app.dissension.demo.DemoApplication
+
+
+@enduml
