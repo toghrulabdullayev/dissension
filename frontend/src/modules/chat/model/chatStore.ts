@@ -1,7 +1,13 @@
 import { create } from 'zustand'
 import { chatApi } from '../api/chatApi'
 import { chatSocketClient } from '../lib/chatSocketClient'
-import type { ChatMessage, ChatSocketEventEnvelope, PresenceServerUpdate } from './types'
+import type {
+  ChatMessage,
+  ChatSocketEventEnvelope,
+  PresenceServerUpdate,
+  ServerMembersUpdatedPayload,
+  UserBannedFromServerPayload,
+} from './types'
 
 type ChatState = {
   messagesByChannel: Record<string, ChatMessage[]>
@@ -9,11 +15,14 @@ type ChatState = {
   errorByChannel: Record<string, string | null>
   onlineUsernamesByServer: Record<string, string[]>
   onlineCountByServer: Record<string, number>
+  serverMembersVersionByServer: Record<string, number>
+  banNotice: UserBannedFromServerPayload | null
   socketStatus: 'disconnected' | 'connecting' | 'connected'
   connect: (token: string) => void
   disconnect: () => void
   loadChannelMessages: (serverId: string, channelId: string) => Promise<void>
   sendMessage: (serverId: string, channelId: string, content: string) => Promise<void>
+  clearBanNotice: () => void
   clearChat: () => void
 }
 
@@ -58,12 +67,36 @@ function isPresencePayload(payload: unknown): payload is PresenceServerUpdate {
   )
 }
 
+function isServerMembersUpdatedPayload(payload: unknown): payload is ServerMembersUpdatedPayload {
+  if (payload == null || typeof payload !== 'object') {
+    return false
+  }
+
+  const value = payload as Record<string, unknown>
+  return typeof value.serverId === 'string'
+}
+
+function isUserBannedFromServerPayload(payload: unknown): payload is UserBannedFromServerPayload {
+  if (payload == null || typeof payload !== 'object') {
+    return false
+  }
+
+  const value = payload as Record<string, unknown>
+  return (
+    typeof value.serverId === 'string' &&
+    typeof value.serverName === 'string' &&
+    typeof value.bannedByUsername === 'string'
+  )
+}
+
 export const useChatStore = create<ChatState>((set, get) => ({
   messagesByChannel: {},
   loadingByChannel: {},
   errorByChannel: {},
   onlineUsernamesByServer: {},
   onlineCountByServer: {},
+  serverMembersVersionByServer: {},
+  banNotice: null,
   socketStatus: 'disconnected',
   connect: (token) => {
     if (!token || get().socketStatus === 'connected') {
@@ -112,6 +145,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
               [payload.serverId]: payload.onlineMembers,
             },
           }))
+          return
+        }
+
+        if (event.type === 'server_members_updated' && isServerMembersUpdatedPayload(event.payload)) {
+          const payload = event.payload
+
+          set((state) => ({
+            serverMembersVersionByServer: {
+              ...state.serverMembersVersionByServer,
+              [payload.serverId]: (state.serverMembersVersionByServer[payload.serverId] ?? 0) + 1,
+            },
+          }))
+          return
+        }
+
+        if (event.type === 'user_banned_from_server' && isUserBannedFromServerPayload(event.payload)) {
+          const payload = event.payload
+
+          set({
+            banNotice: payload,
+          })
         }
       },
     })
@@ -175,6 +229,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       },
     }))
   },
+  clearBanNotice: () => {
+    set({ banNotice: null })
+  },
   clearChat: () => {
     chatSocketClient.disconnect()
     set({
@@ -183,6 +240,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       errorByChannel: {},
       onlineUsernamesByServer: {},
       onlineCountByServer: {},
+      serverMembersVersionByServer: {},
+      banNotice: null,
       socketStatus: 'disconnected',
     })
   },

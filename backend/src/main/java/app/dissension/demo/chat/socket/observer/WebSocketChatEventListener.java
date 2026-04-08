@@ -2,7 +2,9 @@ package app.dissension.demo.chat.socket.observer;
 
 import app.dissension.demo.chat.socket.event.AbstractChatEvent;
 import app.dissension.demo.chat.socket.event.ChatEventListener;
+import app.dissension.demo.chat.socket.event.TargetedChatEvent;
 import app.dissension.demo.chat.socket.session.ChatWebSocketSessionRegistry;
+import java.util.HashSet;
 import app.dissension.demo.server.repository.ServerMembershipRepository;
 import java.util.Map;
 import java.util.Set;
@@ -32,9 +34,18 @@ public class WebSocketChatEventListener implements ChatEventListener {
 
   @Override
   public void onEvent(AbstractChatEvent event) {
-    Set<String> usernames = serverMembershipRepository.findUsernamesByServerIdOrderByMembershipIdAsc(event.serverId())
-      .stream()
-        .collect(Collectors.toSet());
+    Set<String> usernames = new HashSet<>();
+
+    if (!(event instanceof TargetedChatEvent targetedEvent) || targetedEvent.includeServerMembers()) {
+      usernames.addAll(
+          serverMembershipRepository.findUsernamesByServerIdOrderByMembershipIdAsc(event.serverId())
+              .stream()
+              .collect(Collectors.toSet()));
+    }
+
+    if (event instanceof TargetedChatEvent targetedEvent) {
+      usernames.addAll(targetedEvent.targetUsernames());
+    }
 
     if (usernames.isEmpty()) {
       return;

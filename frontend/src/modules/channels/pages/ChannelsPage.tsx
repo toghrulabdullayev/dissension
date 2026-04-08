@@ -49,16 +49,21 @@ export function ChannelsPage() {
   const updateChannel = useChannelsStore((state) => state.updateChannel)
   const deleteChannel = useChannelsStore((state) => state.deleteChannel)
   const clearChannels = useChannelsStore((state) => state.clearChannels)
+  const removeServerChannels = useChannelsStore((state) => state.removeServerChannels)
   const connectChat = useChatStore((state) => state.connect)
   const disconnectChat = useChatStore((state) => state.disconnect)
   const loadChannelMessages = useChatStore((state) => state.loadChannelMessages)
   const sendChatMessage = useChatStore((state) => state.sendMessage)
   const clearChat = useChatStore((state) => state.clearChat)
+  const banNotice = useChatStore((state) => state.banNotice)
+  const clearBanNotice = useChatStore((state) => state.clearBanNotice)
   const messagesByChannel = useChatStore((state) => state.messagesByChannel)
   const loadingByChannel = useChatStore((state) => state.loadingByChannel)
   const errorByChannel = useChatStore((state) => state.errorByChannel)
   const onlineUsernamesByServer = useChatStore((state) => state.onlineUsernamesByServer)
   const onlineCountByServer = useChatStore((state) => state.onlineCountByServer)
+  const serverMembersVersionByServer = useChatStore((state) => state.serverMembersVersionByServer)
+  const removeServer = useServersStore((state) => state.removeServer)
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false)
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false)
   const [channelsPanelCollapsed, setChannelsPanelCollapsed] = useState(
@@ -102,6 +107,9 @@ export function ChannelsPage() {
 
   const activeServerOnlineUsernames =
     activeServer != null ? (onlineUsernamesByServer[activeServer.id] ?? []) : []
+
+  const activeServerMembersVersion =
+    activeServer != null ? (serverMembersVersionByServer[activeServer.id] ?? 0) : 0
 
   const discoverResultsWithPresence = useMemo(
     () => discoverResults.map((server) => ({
@@ -175,6 +183,7 @@ export function ChannelsPage() {
     if (
       !token ||
       !hasServerBootstrapCompleted ||
+      banNotice != null ||
       normalizedServerId == null ||
       activeServer ||
       serversLoading
@@ -188,7 +197,7 @@ export function ChannelsPage() {
     }
 
     navigate('/channels', { replace: true })
-  }, [token, hasServerBootstrapCompleted, normalizedServerId, activeServer, serversLoading, servers, navigate])
+  }, [token, hasServerBootstrapCompleted, banNotice, normalizedServerId, activeServer, serversLoading, servers, navigate])
 
   useEffect(() => {
     if (!token || !activeServer) {
@@ -222,6 +231,23 @@ export function ChannelsPage() {
 
     void discoverServers('')
   }, [token, hasServerBootstrapCompleted, activeServer, serversLoading, normalizedServerId, discoverServers])
+
+  useEffect(() => {
+    if (!banNotice) {
+      return
+    }
+
+    const isBannedServerOpen =
+      normalizedServerId != null &&
+      normalizedServerId.toLowerCase() === banNotice.serverId.toLowerCase()
+
+    removeServer(banNotice.serverId)
+    removeServerChannels(banNotice.serverId)
+
+    if (isBannedServerOpen) {
+      navigate('/channels', { replace: true })
+    }
+  }, [banNotice, normalizedServerId, removeServer, removeServerChannels, navigate])
 
   useEffect(() => {
     if (!token || !activeServer) {
@@ -260,7 +286,7 @@ export function ChannelsPage() {
     return () => {
       cancelled = true
     }
-  }, [token, activeServer])
+  }, [token, activeServer, activeServerMembersVersion])
 
   useEffect(() => {
     const handleResize = () => {
@@ -443,6 +469,29 @@ export function ChannelsPage() {
           }
         }}
       />
+
+      {banNotice ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-slate-900">You Were Banned</h3>
+            <p className="mt-2 text-sm text-slate-700">
+              You have been banned from <span className="font-semibold">{banNotice.serverName}</span> by{' '}
+              <span className="font-semibold">{banNotice.bannedByUsername}</span>.
+            </p>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                onClick={() => {
+                  clearBanNotice()
+                }}
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

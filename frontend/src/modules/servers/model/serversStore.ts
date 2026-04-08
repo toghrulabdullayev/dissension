@@ -15,6 +15,7 @@ type ServersState = {
   joinServer: (serverId: string) => Promise<Server | null>
   createServer: (name: string, description: string) => Promise<Server | null>
   selectServer: (serverId: string) => void
+  removeServer: (serverId: string) => void
   clearServers: () => void
 }
 
@@ -114,6 +115,23 @@ export const useServersStore = create<ServersState>((set) => ({
   },
   selectServer: (serverId) => {
     set({ activeServerId: serverId })
+  },
+  removeServer: (serverId) => {
+    set((state) => {
+      const nextServers = state.servers.filter((server) => server.id !== serverId)
+      const hasActiveServer =
+        state.activeServerId != null && nextServers.some((server) => server.id === state.activeServerId)
+
+      return {
+        servers: nextServers,
+        discoverResults: state.discoverResults.map((server) =>
+          server.id === serverId
+            ? { ...server, joined: false }
+            : server,
+        ),
+        activeServerId: hasActiveServer ? state.activeServerId : (nextServers[0]?.id ?? null),
+      }
+    })
   },
   clearServers: () => {
     set({

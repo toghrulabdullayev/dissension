@@ -14,6 +14,16 @@ export type PresenceServerUpdate = {
   onlineUsernames: string[]
 }
 
+export type ServerMembersUpdatedPayload = {
+  serverId: string
+}
+
+export type UserBannedFromServerPayload = {
+  serverId: string
+  serverName: string
+  bannedByUsername: string
+}
+
 export type ChatSocketEventEnvelope = {
   type: string
   payload: unknown

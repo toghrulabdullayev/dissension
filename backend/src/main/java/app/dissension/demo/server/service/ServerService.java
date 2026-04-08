@@ -3,6 +3,10 @@ package app.dissension.demo.server.service;
 import app.dissension.demo.auth.entity.AppUser;
 import app.dissension.demo.auth.repository.AppUserRepository;
 import app.dissension.demo.chat.service.PresenceService;
+import app.dissension.demo.chat.socket.event.ChatEventPublisher;
+import app.dissension.demo.chat.socket.event.PresenceServerUpdatedEvent;
+import app.dissension.demo.chat.socket.event.ServerMembersUpdatedEvent;
+import app.dissension.demo.chat.socket.event.UserBannedFromServerEvent;
 import app.dissension.demo.server.dto.CreateServerRequest;
 import app.dissension.demo.server.dto.DiscoverServerResponse;
 import app.dissension.demo.server.dto.ServerMemberResponse;
@@ -29,6 +33,7 @@ public class ServerService {
   private final ServerMembershipService serverMembershipService;
   private final ServerModerationService serverModerationService;
   private final PresenceService presenceService;
+  private final ChatEventPublisher chatEventPublisher;
 
   public ServerService(
       AppServerRepository appServerRepository,
@@ -36,13 +41,15 @@ public class ServerService {
       AppUserRepository appUserRepository,
       ServerMembershipService serverMembershipService,
       ServerModerationService serverModerationService,
-      PresenceService presenceService) {
+      PresenceService presenceService,
+      ChatEventPublisher chatEventPublisher) {
     this.appServerRepository = appServerRepository;
     this.serverMembershipRepository = serverMembershipRepository;
     this.appUserRepository = appUserRepository;
     this.serverMembershipService = serverMembershipService;
     this.serverModerationService = serverModerationService;
     this.presenceService = presenceService;
+    this.chatEventPublisher = chatEventPublisher;
   }
 
   @Transactional
@@ -55,9 +62,11 @@ public class ServerService {
 
     // Creator is always the owner of the new server.
     ServerMembership membership = new ServerMembership(savedServer, user, ServerRole.OWNER);
-    serverMembershipRepository.save(membership);
+    ServerMembership savedMembership = serverMembershipRepository.save(membership);
 
-    return toResponse(membership);
+    publishServerRealtimeUpdates(savedServer.getId());
+
+    return toResponse(savedMembership);
   }
 
   @Transactional(readOnly = true)
@@ -87,12 +96,15 @@ public class ServerService {
 
   @Transactional
   public ServerResponse joinServer(UUID serverId, String username) {
-    return serverMembershipService.joinServer(serverId, username);
+    ServerResponse joined = serverMembershipService.joinServer(serverId, username);
+    publishServerRealtimeUpdates(serverId);
+    return joined;
   }
 
   @Transactional
   public void leaveServer(UUID serverId, String username) {
     serverMembershipService.leaveServer(serverId, username);
+    publishServerRealtimeUpdates(serverId);
   }
 
   @Transactional(readOnly = true)
@@ -106,12 +118,22 @@ public class ServerService {
       String actorUsername,
       String targetUsername,
       ServerRole requestedRole) {
-    return serverModerationService.updateServerMemberRole(serverId, actorUsername, targetUsername, requestedRole);
+    List<ServerMemberResponse> members =
+        serverModerationService.updateServerMemberRole(serverId, actorUsername, targetUsername, requestedRole);
+    publishServerRealtimeUpdates(serverId);
+    return members;
   }
 
   @Transactional
   public List<ServerMemberResponse> banServerMember(UUID serverId, String actorUsername, String targetUsername) {
-    return serverModerationService.banServerMember(serverId, actorUsername, targetUsername);
+    String serverName = appServerRepository.findById(serverId)
+        .map(AppServer::getName)
+        .orElse("Unknown server");
+
+    List<ServerMemberResponse> members = serverModerationService.banServerMember(serverId, actorUsername, targetUsername);
+    chatEventPublisher.publish(new UserBannedFromServerEvent(serverId, serverName, actorUsername, targetUsername));
+    publishServerRealtimeUpdates(serverId);
+    return members;
   }
 
   @Transactional(readOnly = true)
@@ -154,6 +176,11 @@ public class ServerService {
 
     String trimmed = description.trim();
     return trimmed.isEmpty() ? null : trimmed;
+  }
+
+  private void publishServerRealtimeUpdates(UUID serverId) {
+    chatEventPublisher.publish(new ServerMembersUpdatedEvent(serverId));
+    chatEventPublisher.publish(new PresenceServerUpdatedEvent(presenceService.buildServerUpdate(serverId)));
   }
 
 }

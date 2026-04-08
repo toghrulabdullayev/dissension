@@ -17,6 +17,7 @@ type ChannelsState = {
   ) => Promise<Channel | null>
   deleteChannel: (serverId: string, channelId: string) => Promise<void>
   selectChannel: (serverId: string, channelId: string) => void
+  removeServerChannels: (serverId: string) => void
   clearChannels: () => void
 }
 
@@ -141,6 +142,28 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
         [serverId]: channelId,
       },
     }))
+  },
+  removeServerChannels: (serverId) => {
+    set((state) => {
+      const nextChannelsByServer = { ...state.channelsByServer }
+      delete nextChannelsByServer[serverId]
+
+      const nextSelectedChannelIdByServer = { ...state.selectedChannelIdByServer }
+      delete nextSelectedChannelIdByServer[serverId]
+
+      const nextLoadingByServer = { ...state.loadingByServer }
+      delete nextLoadingByServer[serverId]
+
+      const nextErrorByServer = { ...state.errorByServer }
+      delete nextErrorByServer[serverId]
+
+      return {
+        channelsByServer: nextChannelsByServer,
+        selectedChannelIdByServer: nextSelectedChannelIdByServer,
+        loadingByServer: nextLoadingByServer,
+        errorByServer: nextErrorByServer,
+      }
+    })
   },
   clearChannels: () => {
     set({
