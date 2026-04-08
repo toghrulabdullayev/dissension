@@ -6,7 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { Hash, Info, MoreHorizontal, Phone, Plus, X } from 'lucide-react'
+import { Hash, Info, LogOut, MoreHorizontal, Phone, Plus, X } from 'lucide-react'
 import type { Channel, ChannelType } from '../model/types'
 
 const CHANNELS_PANEL_DEFAULT_WIDTH = 288
@@ -364,8 +364,8 @@ export function ChannelsPanel({
       onPointerUp={isMobileViewport ? endMobileDrag : undefined}
       onPointerCancel={isMobileViewport ? endMobileDrag : undefined}
     >
-      <div className="shrink-0 border-b border-slate-200 px-4 pb-3 pt-4">
-        <div className="flex items-center gap-2">
+      <div className="shrink-0 px-4 pt-5.5">
+        <div className="flex h-8 items-center gap-2 pb-3">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{serverName}</p>
           {isMobileViewport ? (
             <div className="ml-auto flex items-center gap-2">
@@ -374,16 +374,18 @@ export function ChannelsPanel({
                 onClick={() => {
                   setIsLeaveConfirmOpen(true)
                 }}
-                className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                aria-label="Leave server"
+                title="Leave server"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 transition hover:bg-red-50"
               >
-                Leave
+                <LogOut className="h-4 w-4" />
               </button>
 
               <button
                 type="button"
                 onClick={closeMobileDrawer}
                 aria-label="Close channels drawer"
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -394,16 +396,18 @@ export function ChannelsPanel({
               onClick={() => {
                 setIsLeaveConfirmOpen(true)
               }}
-              className="inline-flex items-center rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+              aria-label="Leave server"
+              title="Leave server"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 transition hover:bg-red-50"
             >
-              Leave
+              <LogOut className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        <div className="-mx-4 my-3 border-t border-slate-200" />
+        <div className="mt-1.5 -mx-4 border-t border-slate-200" />
 
-        <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center justify-between gap-1 pt-3">
           <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
           {canCreateChannels ? (
             <button

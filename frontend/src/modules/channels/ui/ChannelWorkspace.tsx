@@ -1,4 +1,5 @@
 import {
+  ArrowDown,
   ChevronLeft,
   ChevronRight,
   Info,
@@ -8,12 +9,14 @@ import {
   MoreHorizontal,
   PhoneOff,
   Send,
+  Users,
   Video,
   VideoOff,
   X,
 } from 'lucide-react'
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -36,6 +39,7 @@ const MEMBERS_SIDEBAR_MOBILE_MIN_WIDTH = 240
 const MEMBERS_SIDEBAR_MOBILE_MAX_WIDTH = 360
 const MEMBERS_SIDEBAR_MOBILE_CLOSE_DRAG_THRESHOLD = 72
 const MESSAGE_COMPOSER_MAX_LINES = 3
+const CHAT_AUTO_SCROLL_THRESHOLD = 120
 
 function getMembersSidebarMaxWidth(viewportWidth: number) {
   if (viewportWidth >= 1440) {
@@ -118,11 +122,15 @@ export function ChannelWorkspace({
   const [membersActionError, setMembersActionError] = useState<string | null>(null)
   const [mobileMembersDragOffset, setMobileMembersDragOffset] = useState(0)
   const [isDraggingMobileMembersDrawer, setIsDraggingMobileMembersDrawer] = useState(false)
+  const [showJumpToLatestButton, setShowJumpToLatestButton] = useState(false)
   const resizeStartXRef = useRef(0)
   const resizeStartWidthRef = useRef(MEMBERS_SIDEBAR_DEFAULT_WIDTH)
   const chatScrollRegionRef = useRef<HTMLDivElement | null>(null)
   const messageTextareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const shouldScrollToBottomRef = useRef(false)
+  const previousChannelIdRef = useRef<string | null>(null)
+  const previousMessageCountRef = useRef(0)
+  const isNearBottomRef = useRef(true)
+  const forceScrollToBottomRef = useRef(false)
   const mobileMembersDragStartXRef = useRef<number | null>(null)
   const mobileMembersDragStartYRef = useRef<number | null>(null)
   const mobileMembersDragStartOffsetRef = useRef(0)
@@ -155,6 +163,38 @@ export function ChannelWorkspace({
     [onlineUsernames],
   )
 
+  const updateScrollPositionState = () => {
+    const container = chatScrollRegionRef.current
+
+    if (!container) {
+      isNearBottomRef.current = true
+      setShowJumpToLatestButton(false)
+      return
+    }
+
+    const distanceFromBottom = container.scrollHeight - (container.scrollTop + container.clientHeight)
+    const isNearBottom = distanceFromBottom <= CHAT_AUTO_SCROLL_THRESHOLD
+
+    isNearBottomRef.current = isNearBottom
+    setShowJumpToLatestButton(distanceFromBottom > CHAT_AUTO_SCROLL_THRESHOLD)
+  }
+
+  const scrollToLatestMessage = (behavior: ScrollBehavior = 'smooth') => {
+    const container = chatScrollRegionRef.current
+    if (!container) {
+      return
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    })
+
+    window.requestAnimationFrame(() => {
+      updateScrollPositionState()
+    })
+  }
+
   useEffect(() => {
     setMessageDraft('')
     setMessageSendError(null)
@@ -182,29 +222,73 @@ export function ChannelWorkspace({
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden'
   }, [messageDraft, selectedChannel?.id])
 
-  useEffect(() => {
-    if (!shouldScrollToBottomRef.current) {
+  useLayoutEffect(() => {
+    if (!selectedChannel || selectedChannel.type === 'CALL') {
       return
     }
 
     const container = chatScrollRegionRef.current
     if (!container) {
-      shouldScrollToBottomRef.current = false
+      return
+    }
+
+    container.scrollTop = container.scrollHeight
+    updateScrollPositionState()
+  }, [selectedChannel?.id])
+
+  useEffect(() => {
+    const currentChannelId = selectedChannel?.id ?? null
+    const messageCount = selectedChannelMessages.length
+    const channelChanged = previousChannelIdRef.current !== currentChannelId
+
+    if (channelChanged) {
+      previousChannelIdRef.current = currentChannelId
+      previousMessageCountRef.current = messageCount
+      forceScrollToBottomRef.current = currentChannelId != null
+      isNearBottomRef.current = true
+      setShowJumpToLatestButton(false)
+    }
+
+    const hasNewMessages = messageCount > previousMessageCountRef.current
+    previousMessageCountRef.current = messageCount
+
+    if (forceScrollToBottomRef.current) {
+      const frame = window.requestAnimationFrame(() => {
+        scrollToLatestMessage('auto')
+      })
+
+      if (!messagesLoading) {
+        forceScrollToBottomRef.current = false
+      }
+
+      return () => {
+        window.cancelAnimationFrame(frame)
+      }
+    }
+
+    if (!hasNewMessages) {
+      const frame = window.requestAnimationFrame(() => {
+        updateScrollPositionState()
+      })
+
+      return () => {
+        window.cancelAnimationFrame(frame)
+      }
+    }
+
+    if (!isNearBottomRef.current) {
+      setShowJumpToLatestButton(true)
       return
     }
 
     const frame = window.requestAnimationFrame(() => {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: 'smooth',
-      })
-      shouldScrollToBottomRef.current = false
+      scrollToLatestMessage('smooth')
     })
 
     return () => {
       window.cancelAnimationFrame(frame)
     }
-  }, [selectedChannel?.id, selectedChannelMessages.length])
+  }, [selectedChannel?.id, selectedChannelMessages.length, messagesLoading])
 
   useEffect(() => {
     if (openMemberMenuFor == null) {
@@ -458,14 +542,11 @@ export function ChannelWorkspace({
       return
     }
 
-    shouldScrollToBottomRef.current = true
-
     void onSendMessage(trimmedDraft)
       .then(() => {
         setMessageDraft('')
       })
       .catch((error) => {
-        shouldScrollToBottomRef.current = false
         setMessageSendError(error instanceof Error ? error.message : 'Failed to send message')
       })
   }
@@ -478,6 +559,10 @@ export function ChannelWorkspace({
     event.preventDefault()
     sendMessage()
   }
+
+  const showReadOnlyInfoHint = selectedChannel?.type === 'INFO' && !canSendInSelectedChannel
+  const shouldRenderBottomControls =
+    showJumpToLatestButton || canSendInSelectedChannel || showReadOnlyInfoHint
 
   const membersSidebarContent = (
     <aside
@@ -505,8 +590,8 @@ export function ChannelWorkspace({
       onPointerCancel={isMobileViewport ? endMobileMembersDrag : undefined}
     >
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-200 px-4 pb-3 pt-[17.5px]">
-          <div className="flex min-h-6 items-center gap-2">
+        <div className="border-b border-slate-200 px-4 pb-3 pt-4">
+          <div className="flex h-8 items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-800">Members</h3>
             <span className="text-xs text-slate-500">{shownMembersCount}</span>
             {isMobileViewport ? (
@@ -683,13 +768,13 @@ export function ChannelWorkspace({
       <section className="flex h-screen min-w-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pb-6 pt-0">
           <div className="-mx-6 shrink-0 border-b border-slate-200 px-6 pb-3 pt-4">
-            <div className="flex min-h-6 min-w-0 items-center gap-3">
+            <div className="flex h-8 min-w-0 items-center gap-3">
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <button
                   type="button"
                   onClick={onToggleChannelsPanel}
                   aria-label={channelsPanelCollapsed ? 'Expand channels panel' : 'Collapse channels panel'}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
                 >
                   {channelsPanelCollapsed ? (
                     <ChevronRight className="h-4 w-4" />
@@ -706,9 +791,11 @@ export function ChannelWorkspace({
               <button
                 type="button"
                 onClick={toggleMembersSidebar}
-                className="ml-auto inline-flex shrink-0 items-center rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+                aria-label={membersSidebarCollapsed ? 'Open members sidebar' : 'Close members sidebar'}
+                title="Members"
+                className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100"
               >
-                Members
+                <Users className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -759,6 +846,7 @@ export function ChannelWorkspace({
               <div
                 ref={chatScrollRegionRef}
                 className="servers-scroll-region min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-4"
+                onScroll={updateScrollPositionState}
               >
                 <div className="min-h-full p-1">
                   {!selectedChannel ? (
@@ -827,41 +915,59 @@ export function ChannelWorkspace({
                 </div>
               </div>
 
-              {canSendInSelectedChannel ? (
+              {shouldRenderBottomControls ? (
                 <div className="mt-3 shrink-0">
-                  <div className="flex gap-2">
-                    <textarea
-                      ref={messageTextareaRef}
-                      rows={1}
-                      value={messageDraft}
-                      onChange={(event) => setMessageDraft(event.target.value)}
-                      onKeyDown={handleDraftKeyDown}
-                      placeholder={
-                        selectedChannel?.type === 'INFO'
-                          ? 'Post an announcement...'
-                          : 'Type your message...'
-                      }
-                      className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!canSendInSelectedChannel}
-                    />
-                    <Button
-                      type="button"
-                      onClick={sendMessage}
-                      disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
-                    >
-                      <Send className="h-4 w-4" />
-                      {selectedChannel?.type === 'INFO' ? 'Post' : 'Send'}
-                    </Button>
+                  <div className="relative">
+                    {showJumpToLatestButton ? (
+                      <button
+                        type="button"
+                        onClick={() => scrollToLatestMessage('smooth')}
+                        aria-label="Jump to latest message"
+                        title="Jump to latest"
+                        className="absolute -top-10 right-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition hover:bg-slate-100"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                    ) : null}
+
+                    {canSendInSelectedChannel ? (
+                      <div className="flex gap-2">
+                        <textarea
+                          ref={messageTextareaRef}
+                          rows={1}
+                          value={messageDraft}
+                          onChange={(event) => setMessageDraft(event.target.value)}
+                          onKeyDown={handleDraftKeyDown}
+                          placeholder={
+                            selectedChannel?.type === 'INFO'
+                              ? 'Post an announcement...'
+                              : 'Type your message...'
+                          }
+                          className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={!canSendInSelectedChannel}
+                        />
+                        <Button
+                          type="button"
+                          onClick={sendMessage}
+                          disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
+                          aria-label={selectedChannel?.type === 'INFO' ? 'Post announcement' : 'Send message'}
+                          title={selectedChannel?.type === 'INFO' ? 'Post announcement' : 'Send message'}
+                          className="h-10 w-10 shrink-0 p-0"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : showReadOnlyInfoHint ? (
+                      <p className="text-xs text-slate-500">
+                        Only owners and admins can post announcements in this channel.
+                      </p>
+                    ) : null}
                   </div>
 
-                  {messageSendError ? (
+                  {canSendInSelectedChannel && messageSendError ? (
                     <p className="mt-2 text-xs text-red-600">{messageSendError}</p>
                   ) : null}
                 </div>
-              ) : selectedChannel?.type === 'INFO' ? (
-                <p className="mt-3 shrink-0 text-xs text-slate-500">
-                  Only owners and admins can post announcements in this channel.
-                </p>
               ) : null}
             </>
           )}
