@@ -364,7 +364,7 @@ export function ChannelsPanel({
       onPointerUp={isMobileViewport ? endMobileDrag : undefined}
       onPointerCancel={isMobileViewport ? endMobileDrag : undefined}
     >
-      <div className="shrink-0 px-4 pt-5.5">
+      <div className="shrink-0 px-4 pt-5.5 pb-3">
         <div className="flex h-8 items-center gap-2 pb-3">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{serverName}</p>
           {isMobileViewport ? (

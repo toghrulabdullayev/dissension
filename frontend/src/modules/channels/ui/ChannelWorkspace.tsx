@@ -232,8 +232,27 @@ export function ChannelWorkspace({
       return
     }
 
-    container.scrollTop = container.scrollHeight
-    updateScrollPositionState()
+    let nextFrame: number | null = null
+    const snapToBottom = () => {
+      container.scrollTop = container.scrollHeight
+      updateScrollPositionState()
+    }
+
+    snapToBottom()
+
+    const frame = window.requestAnimationFrame(() => {
+      snapToBottom()
+      nextFrame = window.requestAnimationFrame(() => {
+        snapToBottom()
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      if (nextFrame != null) {
+        window.cancelAnimationFrame(nextFrame)
+      }
+    }
   }, [selectedChannel?.id])
 
   useEffect(() => {
@@ -952,7 +971,7 @@ export function ChannelWorkspace({
                           disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
                           aria-label={selectedChannel?.type === 'INFO' ? 'Post announcement' : 'Send message'}
                           title={selectedChannel?.type === 'INFO' ? 'Post announcement' : 'Send message'}
-                          className="h-10 w-10 shrink-0 p-0"
+                          className="h-10 w-10 shrink-0 p-0 self-end"
                         >
                           <Send className="h-4 w-4" />
                         </Button>

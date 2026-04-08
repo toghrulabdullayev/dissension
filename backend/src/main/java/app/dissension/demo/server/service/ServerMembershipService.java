@@ -3,6 +3,7 @@ package app.dissension.demo.server.service;
 import app.dissension.demo.auth.entity.AppUser;
 import app.dissension.demo.auth.repository.AppUserRepository;
 import app.dissension.demo.channel.repository.AppChannelRepository;
+import app.dissension.demo.chat.repository.ChatMessageRepository;
 import app.dissension.demo.server.dto.ServerResponse;
 import app.dissension.demo.server.entity.AppServer;
 import app.dissension.demo.server.entity.ServerMembership;
@@ -21,16 +22,19 @@ public class ServerMembershipService {
   private final AppUserRepository appUserRepository;
   private final AppServerRepository appServerRepository;
   private final AppChannelRepository appChannelRepository;
+  private final ChatMessageRepository chatMessageRepository;
   private final ServerMembershipRepository serverMembershipRepository;
 
   public ServerMembershipService(
       AppUserRepository appUserRepository,
       AppServerRepository appServerRepository,
       AppChannelRepository appChannelRepository,
+      ChatMessageRepository chatMessageRepository,
       ServerMembershipRepository serverMembershipRepository) {
     this.appUserRepository = appUserRepository;
     this.appServerRepository = appServerRepository;
     this.appChannelRepository = appChannelRepository;
+    this.chatMessageRepository = chatMessageRepository;
     this.serverMembershipRepository = serverMembershipRepository;
   }
 
@@ -63,6 +67,7 @@ public class ServerMembershipService {
 
     if (membersBeforeLeave == 1L) {
       serverMembershipRepository.delete(leavingMembership);
+      chatMessageRepository.deleteAllByChannelServerId(serverId);
       appChannelRepository.deleteAllByServerId(serverId);
       appServerRepository.deleteById(serverId);
       return;
