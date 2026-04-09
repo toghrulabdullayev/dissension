@@ -87,7 +87,7 @@ export function CreateChannelDialog({
   const isUpdateMode = mode === 'update'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl">{isUpdateMode ? 'Update channel' : 'Create channel'}</CardTitle>
@@ -123,7 +123,7 @@ export function CreateChannelDialog({
                 id="channel-type"
                 value={type}
                 onChange={(event) => setType(event.target.value as ChannelType)}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="flex h-11 w-full rounded-lg border border-(--border-visible) bg-(--surface) px-3 py-2 text-sm text-(--text-primary) focus-visible:border-(--text-primary) focus-visible:outline-none"
               >
                 <option value="INFO">Info (owners/admins/mods can post)</option>
                 <option value="CHAT">Chat (everyone can post)</option>
@@ -131,7 +131,7 @@ export function CreateChannelDialog({
               </select>
             </div>
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-(--accent)">{error}</p> : null}
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>

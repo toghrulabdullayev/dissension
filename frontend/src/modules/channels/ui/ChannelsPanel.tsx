@@ -344,11 +344,11 @@ export function ChannelsPanel({
       className={[
         isMobileViewport
           ? [
-              'fixed inset-y-0 left-0 z-50 flex max-w-[calc(100vw-1rem)] flex-col border-r border-slate-200 bg-white shadow-2xl will-change-transform',
+              'fixed inset-y-0 left-0 z-50 flex max-w-[calc(100vw-1rem)] flex-col border-r border-(--border) bg-(--surface) will-change-transform',
               isDraggingMobileDrawer ? 'transition-none' : 'transition-transform duration-300 ease-out',
               panelCollapsed ? 'pointer-events-none' : '',
             ].join(' ')
-          : 'flex h-screen shrink-0 flex-col border-r border-slate-200 bg-white',
+          : 'flex h-screen shrink-0 flex-col border-r border-(--border) bg-(--surface)',
       ].join(' ')}
       style={{
         width: `${effectivePanelWidth}px`,
@@ -366,7 +366,7 @@ export function ChannelsPanel({
     >
       <div className="shrink-0 px-4 pt-5.5 pb-3">
         <div className="flex h-8 items-center gap-2 pb-3">
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{serverName}</p>
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-(--text-display)">{serverName}</p>
           {isMobileViewport ? (
             <div className="ml-auto flex items-center gap-2">
               <button
@@ -376,7 +376,7 @@ export function ChannelsPanel({
                 }}
                 aria-label="Leave server"
                 title="Leave server"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 transition hover:bg-red-50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-(--accent)/60 text-(--accent) transition hover:bg-(--accent-subtle)"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -385,7 +385,7 @@ export function ChannelsPanel({
                 type="button"
                 onClick={closeMobileDrawer}
                 aria-label="Close channels drawer"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-(--border-visible) text-(--text-secondary) transition hover:text-(--text-display)"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -398,17 +398,17 @@ export function ChannelsPanel({
               }}
               aria-label="Leave server"
               title="Leave server"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 transition hover:bg-red-50"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-(--accent)/60 text-(--accent) transition hover:bg-(--accent-subtle)"
             >
               <LogOut className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        <div className="mt-1.5 -mx-4 border-t border-slate-200" />
+        <div className="mt-1.5 -mx-4 border-t border-(--border)" />
 
         <div className="flex items-center justify-between gap-1 pt-3">
-          <h2 className="text-sm font-semibold text-slate-500">Channels</h2>
+          <h2 className="nd-label text-(--text-secondary)">Channels</h2>
           {canCreateChannels ? (
             <button
               type="button"
@@ -419,7 +419,7 @@ export function ChannelsPanel({
                 }
               }}
               disabled={!hasActiveServer}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-100"
+              className="nd-label inline-flex items-center gap-1 rounded-full border border-(--border-visible) px-2.5 py-1 text-(--text-secondary) transition hover:border-(--text-primary) hover:text-(--text-display)"
             >
               <Plus className="h-3 w-3" />
               New
@@ -433,7 +433,7 @@ export function ChannelsPanel({
         onScroll={hideChannelTooltip}
       >
         {channels.length === 0 ? (
-          <p className="text-sm text-slate-500">No channels in this server yet.</p>
+          <p className="text-sm text-(--text-secondary)">No channels in this server yet.</p>
         ) : (
           <div className="space-y-1">
             {channels
@@ -455,10 +455,10 @@ export function ChannelsPanel({
                         }
                       }}
                       className={[
-                        'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition',
+                        'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition',
                         active
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                          ? 'border border-(--text-display) bg-(--text-display) text-(--black)'
+                          : 'border border-transparent text-(--text-secondary) hover:border-(--border) hover:text-(--text-display)',
                       ].join(' ')}
                     >
                       {channelIcon(channel.type)}
@@ -471,7 +471,7 @@ export function ChannelsPanel({
                       </span>
                       <span
                         className={[
-                          'ml-auto text-[10px] uppercase tracking-wide transition',
+                          'nd-label ml-auto transition',
                           canManageChannels
                             ? (menuOpen ? 'opacity-0' : 'opacity-75 group-hover:opacity-0')
                             : 'opacity-75',
@@ -494,8 +494,8 @@ export function ChannelsPanel({
                           'absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border transition',
                           menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                           active
-                            ? 'border-slate-700 text-slate-200 hover:bg-slate-800'
-                            : 'border-slate-200 text-slate-500 hover:bg-slate-100',
+                            ? 'border-(--black)/20 text-(--black) hover:bg-(--black)/10'
+                            : 'border-(--border) text-(--text-secondary) hover:border-(--border-visible) hover:text-(--text-display)',
                         ].join(' ')}
                       >
                         <MoreHorizontal className="h-4 w-4" />
@@ -505,11 +505,11 @@ export function ChannelsPanel({
                     {menuOpen ? (
                       <div
                         data-channel-menu="true"
-                        className="absolute right-2 top-10 z-20 w-40 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+                        className="absolute right-2 top-10 z-20 w-40 rounded-md border border-(--border-visible) bg-(--surface-raised) p-1"
                       >
                         <button
                           type="button"
-                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                          className="nd-label w-full rounded-sm px-2 py-1.5 text-left text-(--text-primary) transition hover:bg-(--black)/15"
                           onClick={() => {
                             onOpenUpdateChannel?.(channel)
                             setOpenChannelMenuFor(null)
@@ -522,7 +522,7 @@ export function ChannelsPanel({
                         </button>
                         <button
                           type="button"
-                          className="w-full rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
+                          className="nd-label w-full rounded-sm px-2 py-1.5 text-left text-(--accent) transition hover:bg-(--accent-subtle)"
                           onClick={async () => {
                             if (!onDeleteChannel) {
                               setOpenChannelMenuFor(null)
@@ -553,7 +553,7 @@ export function ChannelsPanel({
                 )
               })}
 
-            {actionError ? <p className="pt-2 text-xs text-red-600">{actionError}</p> : null}
+            {actionError ? <p className="pt-2 text-xs text-(--accent)">{actionError}</p> : null}
           </div>
         )}
       </div>
@@ -570,7 +570,7 @@ export function ChannelsPanel({
                 aria-label="Close channels drawer"
                 onClick={closeMobileDrawer}
                 className={[
-                  'fixed inset-0 z-40 bg-slate-900/20 transition-opacity duration-300',
+                  'fixed inset-0 z-40 bg-black/35 transition-opacity duration-300',
                   panelCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
                 ].join(' ')}
               />
@@ -585,7 +585,7 @@ export function ChannelsPanel({
                 role="separator"
                 aria-orientation="vertical"
                 onMouseDown={startResize}
-                className="w-1 cursor-col-resize bg-slate-200 transition hover:bg-slate-300"
+                className="w-1 cursor-col-resize bg-(--border) transition hover:bg-(--border-visible)"
               />
             </>
           )}
@@ -596,8 +596,8 @@ export function ChannelsPanel({
               className="pointer-events-none fixed z-120 -translate-y-1/2"
               style={{ top: tooltip.top, left: tooltip.left }}
             >
-              <div className="relative flex items-center gap-1.5 rounded-lg border border-slate-600/50 bg-slate-900 px-2 py-1.5 text-sm font-semibold text-slate-100 shadow-xl">
-                <span className="absolute -left-0.5 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-slate-600/50 bg-slate-900" />
+              <div className="relative flex items-center gap-1.5 rounded-lg border border-(--border-visible) bg-(--surface-raised) px-2 py-1.5 text-sm font-medium text-(--text-display)">
+                <span className="absolute -left-0.5 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-(--border-visible) bg-(--surface-raised)" />
                 <span>{tooltip.name}</span>
               </div>
             </div>,
@@ -607,10 +607,10 @@ export function ChannelsPanel({
 
       {isLeaveConfirmOpen
         ? createPortal(
-            <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/40 p-4">
-              <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-4 shadow-2xl">
-                <h3 className="text-sm font-semibold text-slate-900">Leave server?</h3>
-                <p className="mt-2 text-sm text-slate-600">
+            <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4">
+              <div className="w-full max-w-sm rounded-xl border border-(--border-visible) bg-(--surface) p-4">
+                <h3 className="text-sm font-medium text-(--text-display)">Leave server?</h3>
+                <p className="mt-2 text-sm text-(--text-secondary)">
                   You will leave this server and can rejoin later from Discover.
                 </p>
 
@@ -619,7 +619,7 @@ export function ChannelsPanel({
                     type="button"
                     onClick={() => setIsLeaveConfirmOpen(false)}
                     disabled={isLeavingServer}
-                    className="inline-flex items-center rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="nd-label inline-flex items-center rounded-full border border-(--border-visible) px-3 py-1.5 text-(--text-secondary) transition hover:border-(--text-primary) hover:text-(--text-display) disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -644,7 +644,7 @@ export function ChannelsPanel({
                       }
                     }}
                     disabled={isLeavingServer}
-                    className="inline-flex items-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="nd-label inline-flex items-center rounded-full border border-(--accent)/60 bg-(--accent-subtle) px-3 py-1.5 text-(--accent) transition hover:bg-(--accent-subtle)/80 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isLeavingServer ? 'Leaving...' : 'Leave'}
                   </button>

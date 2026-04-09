@@ -68,7 +68,7 @@ export function CreateServerDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl">Create server</CardTitle>
@@ -108,14 +108,14 @@ export function CreateServerDialog({
                 placeholder="Optional short description"
                 maxLength={DESCRIPTION_MAX_LENGTH}
                 rows={4}
-                className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-offset-white transition placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full resize-none rounded-lg border border-(--border-visible) bg-(--surface) px-3 py-2 text-sm text-(--text-primary) outline-none transition placeholder:text-(--text-disabled) focus-visible:border-(--text-primary) disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <p className="text-right text-xs text-slate-500">
+              <p className="nd-label text-right text-(--text-secondary)">
                 {DESCRIPTION_MAX_LENGTH - description.length} chars left
               </p>
             </div>
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-(--accent)">{error}</p> : null}
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>

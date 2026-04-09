@@ -44,8 +44,8 @@ export function ServerSidebar({
 
   return (
     <>
-      <aside className="sticky top-0 flex h-screen w-20 shrink-0 flex-col border-r border-slate-200 bg-slate-100/70 p-3">
-        <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <aside className="sticky top-0 flex h-screen w-20 shrink-0 flex-col border-r border-(--border) bg-(--surface)/95 p-3">
+        <p className="nd-label mb-3 px-1 text-(--text-disabled)">
           Servers
         </p>
 
@@ -60,7 +60,7 @@ export function ServerSidebar({
             onMouseLeave={hideServerTooltip}
             onFocus={(event) => showServerTooltip('Create server', event.currentTarget)}
             onBlur={hideServerTooltip}
-            className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-slate-500 transition hover:bg-slate-200"
+            className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-dashed border-(--border-visible) bg-(--surface-raised) text-(--text-secondary) transition hover:border-(--text-primary) hover:text-(--text-display)"
           >
             <Plus className="h-5 w-5" />
           </button>
@@ -75,8 +75,8 @@ export function ServerSidebar({
             className={[
               'mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border transition',
               isDiscoverActive
-                ? 'rounded-xl border-slate-900 bg-slate-900 text-white'
-                : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-200',
+                ? 'rounded-xl border-(--text-display) bg-(--text-display) text-(--black)'
+                : 'border-(--border-visible) bg-(--surface-raised) text-(--text-secondary) hover:text-(--text-display)',
             ].join(' ')}
           >
             <Compass className="h-5 w-5" />
@@ -96,10 +96,10 @@ export function ServerSidebar({
                   onFocus={(event) => showServerTooltip(server.name, event.currentTarget)}
                   onBlur={hideServerTooltip}
                   className={[
-                    'mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-bold transition',
+                    'mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-medium transition',
                     active
-                      ? 'rounded-xl bg-slate-900 text-white'
-                      : 'bg-white text-slate-700 hover:bg-slate-200',
+                      ? 'rounded-xl border border-(--text-display) bg-(--text-display) text-(--black)'
+                      : 'border border-(--border) bg-(--surface-raised) text-(--text-secondary) hover:text-(--text-display)',
                   ].join(' ')}
                 >
                   {server.name.slice(0, 2).toUpperCase()}
@@ -118,7 +118,7 @@ export function ServerSidebar({
           onMouseLeave={hideServerTooltip}
           onFocus={(event) => showServerTooltip('Log out', event.currentTarget)}
           onBlur={hideServerTooltip}
-          className="mx-auto mt-3 h-10 w-12 px-0"
+          className="mx-auto mt-3 h-10 w-12 rounded-2xl px-0"
         >
           <LogOut className="h-4 w-4" />
         </Button>
@@ -130,8 +130,8 @@ export function ServerSidebar({
               className="pointer-events-none fixed z-[120] -translate-y-1/2"
               style={{ top: tooltip.top, left: tooltip.left }}
             >
-              <div className="relative flex items-center gap-1.5 rounded-lg border border-slate-600/50 bg-slate-900 px-2 py-1.5 text-sm font-semibold text-slate-100 shadow-xl">
-                <span className="absolute -left-0.5 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-slate-600/50 bg-slate-900" />
+              <div className="relative flex items-center gap-1.5 rounded-lg border border-(--border-visible) bg-(--surface-raised) px-2 py-1.5 text-sm font-medium text-(--text-display)">
+                <span className="absolute -left-0.5 top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-(--border-visible) bg-(--surface-raised)" />
                 <span>{tooltip.name}</span>
               </div>
             </div>,

@@ -303,7 +303,7 @@ export function ChannelsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-transparent text-(--text-primary)">
       <div className="flex min-h-screen">
         <ServerSidebar
           servers={servers}
@@ -471,17 +471,17 @@ export function ChannelsPage() {
       />
 
       {banNotice ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
-          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-slate-900">You Were Banned</h3>
-            <p className="mt-2 text-sm text-slate-700">
-              You have been banned from <span className="font-semibold">{banNotice.serverName}</span> by{' '}
-              <span className="font-semibold">{banNotice.bannedByUsername}</span>.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-(--border-visible) bg-(--surface) p-6">
+            <h3 className="text-lg font-medium text-(--text-display)">You Were Banned</h3>
+            <p className="mt-2 text-sm text-(--text-primary)">
+              You have been banned from <span className="font-medium">{banNotice.serverName}</span> by{' '}
+              <span className="font-medium">{banNotice.bannedByUsername}</span>.
             </p>
             <div className="mt-5 flex justify-end">
               <button
                 type="button"
-                className="inline-flex items-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                className="nd-label inline-flex h-10 items-center rounded-full border border-(--text-display) bg-(--text-display) px-4 text-(--black) transition hover:bg-(--text-primary)"
                 onClick={() => {
                   clearBanNotice()
                 }}

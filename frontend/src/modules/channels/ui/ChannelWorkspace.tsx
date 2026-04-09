@@ -588,11 +588,11 @@ export function ChannelWorkspace({
       className={[
         isMobileViewport
           ? [
-              'fixed inset-y-0 right-0 z-60 border-l border-slate-200 bg-slate-50 shadow-2xl will-change-transform',
+              'fixed inset-y-0 right-0 z-60 border-l border-(--border) bg-(--surface) will-change-transform',
               isDraggingMobileMembersDrawer ? 'transition-none' : 'transition-transform duration-300 ease-out',
               membersSidebarCollapsed ? 'pointer-events-none' : '',
             ].join(' ')
-          : 'border-l border-slate-200 bg-slate-50',
+          : 'border-l border-(--border) bg-(--surface)',
       ].join(' ')}
       style={{
         width: `${effectiveMembersSidebarWidth}px`,
@@ -609,16 +609,16 @@ export function ChannelWorkspace({
       onPointerCancel={isMobileViewport ? endMobileMembersDrag : undefined}
     >
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-200 px-4 pb-3 pt-4">
+        <div className="border-b border-(--border) px-4 pb-3 pt-4">
           <div className="flex h-8 items-center gap-2">
-            <h3 className="text-sm font-semibold text-slate-800">Members</h3>
-            <span className="text-xs text-slate-500">{shownMembersCount}</span>
+            <h3 className="text-sm font-medium text-(--text-display)">Members</h3>
+            <span className="nd-label text-(--text-secondary)">{shownMembersCount}</span>
             {isMobileViewport ? (
               <button
                 type="button"
                 onClick={closeMembersDrawer}
                 aria-label="Close members drawer"
-                className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md border border-(--border-visible) text-(--text-secondary) transition hover:text-(--text-display)"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -628,15 +628,15 @@ export function ChannelWorkspace({
 
         <div className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden p-3">
           {membersActionError ? (
-            <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
+            <p className="mb-3 rounded-md border border-(--accent)/60 bg-(--accent-subtle) px-2 py-1.5 text-xs text-(--accent)">
               {membersActionError}
             </p>
           ) : null}
 
           {membersLoading ? (
-            <p className="text-sm text-slate-500">Loading members...</p>
+            <p className="text-sm text-(--text-secondary)">Loading members...</p>
           ) : serverMembers.length === 0 ? (
-            <p className="text-sm text-slate-500">No members to show.</p>
+            <p className="text-sm text-(--text-secondary)">No members to show.</p>
           ) : (
             <div className="space-y-4">
               {memberGroups.map((group) => {
@@ -646,7 +646,7 @@ export function ChannelWorkspace({
 
                 return (
                   <section key={group.title}>
-                    <h4 className="mb-2 text-xs font-semibold tracking-wide text-slate-500">
+                    <h4 className="nd-label mb-2 text-(--text-secondary)">
                       {group.title}
                     </h4>
 
@@ -665,8 +665,8 @@ export function ChannelWorkspace({
                             className={[
                               'relative flex items-center gap-3 rounded-md border px-3 py-2',
                               isCurrentUser
-                                ? 'border-slate-300 bg-slate-100'
-                                : 'border-slate-200 bg-white',
+                                ? 'border-(--border-visible) bg-(--surface-raised)'
+                                : 'border-(--border) bg-(--surface)',
                             ].join(' ')}
                           >
                             <div className="relative h-9 w-9 shrink-0">
@@ -677,22 +677,22 @@ export function ChannelWorkspace({
                                   className="h-9 w-9 rounded-full object-cover"
                                 />
                               ) : (
-                                <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold uppercase text-slate-600">
+                                <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-(--surface-raised) text-xs font-semibold uppercase text-(--text-secondary)">
                                   {member.username.slice(0, 2)}
                                 </div>
                               )}
 
                               {isOnline ? (
-                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-white bg-emerald-500" />
+                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-(--surface) bg-(--success)" />
                               ) : null}
                             </div>
 
-                            <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">
+                            <p className="min-w-0 flex-1 truncate text-sm font-medium text-(--text-primary)">
                               {member.username}
                             </p>
 
                             {isCurrentUser ? (
-                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                              <span className="nd-label rounded-full border border-(--border) bg-(--surface-raised) px-2 py-0.5 text-(--text-secondary)">
                                 You
                               </span>
                             ) : null}
@@ -707,7 +707,7 @@ export function ChannelWorkspace({
                                     value === member.username ? null : member.username,
                                   )
                                 }}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-(--border) text-(--text-secondary) transition hover:border-(--border-visible) hover:text-(--text-display)"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </button>
@@ -716,12 +716,12 @@ export function ChannelWorkspace({
                             {menuOpen ? (
                               <div
                                 data-member-menu="true"
-                                className="absolute right-2 top-10 z-20 w-44 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+                                className="absolute right-2 top-10 z-20 w-44 rounded-md border border-(--border-visible) bg-(--surface-raised) p-1"
                               >
                                 {canChangeRole ? (
                                   <button
                                     type="button"
-                                    className="w-full truncate rounded-sm px-2 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100"
+                                    className="nd-label w-full truncate rounded-sm px-2 py-1.5 text-left text-(--text-primary) transition hover:bg-(--black)/10"
                                     onClick={async () => {
                                       setMembersActionError(null)
 
@@ -746,7 +746,7 @@ export function ChannelWorkspace({
                                 {canBan ? (
                                   <button
                                     type="button"
-                                    className="w-full truncate rounded-sm px-2 py-1.5 text-left text-xs text-red-600 transition hover:bg-red-50"
+                                    className="nd-label w-full truncate rounded-sm px-2 py-1.5 text-left text-(--accent) transition hover:bg-(--accent-subtle)"
                                     onClick={async () => {
                                       setMembersActionError(null)
 
@@ -786,14 +786,14 @@ export function ChannelWorkspace({
     <>
       <section className="flex h-screen min-w-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col px-6 pb-6 pt-0">
-          <div className="-mx-6 shrink-0 border-b border-slate-200 px-6 pb-3 pt-4">
+          <div className="-mx-6 shrink-0 border-b border-(--border) px-6 pb-3 pt-4">
             <div className="flex h-8 min-w-0 items-center gap-3">
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <button
                   type="button"
                   onClick={onToggleChannelsPanel}
                   aria-label={channelsPanelCollapsed ? 'Expand channels panel' : 'Collapse channels panel'}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-(--border-visible) text-(--text-secondary) transition hover:text-(--text-display)"
                 >
                   {channelsPanelCollapsed ? (
                     <ChevronRight className="h-4 w-4" />
@@ -802,7 +802,7 @@ export function ChannelWorkspace({
                   )}
                 </button>
 
-                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+                <p className="min-w-0 flex-1 truncate text-sm font-medium text-(--text-display)">
                   {selectedChannel?.name ?? 'No channel selected'}
                 </p>
               </div>
@@ -812,7 +812,7 @@ export function ChannelWorkspace({
                 onClick={toggleMembersSidebar}
                 aria-label={membersSidebarCollapsed ? 'Open members sidebar' : 'Close members sidebar'}
                 title="Members"
-                className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-100"
+                className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-(--border-visible) text-(--text-secondary) transition hover:text-(--text-display)"
               >
                 <Users className="h-4 w-4" />
               </button>
@@ -821,9 +821,9 @@ export function ChannelWorkspace({
 
           {selectedChannel?.type === 'CALL' ? (
             <div className="servers-scroll-region min-h-0 flex-1 overflow-y-auto overflow-x-hidden pt-4">
-              <div className="rounded-md border border-slate-200 bg-white p-4">
-                <h3 className="text-lg font-semibold">Call Channel</h3>
-                <p className="mt-1 text-sm text-slate-500">
+              <div className="rounded-md border border-(--border) bg-(--surface) p-4">
+                <h3 className="text-lg font-medium text-(--text-display)">Call Channel</h3>
+                <p className="mt-1 text-sm text-(--text-secondary)">
                   Voice, video, and screen sharing UI controls are ready for real-time integration.
                 </p>
 
@@ -853,7 +853,11 @@ export function ChannelWorkspace({
                     Share Screen
                   </Button>
 
-                  <Button type="button" variant="outline" className="w-full text-red-600 hover:bg-red-50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-(--accent)/60 text-(--accent) hover:bg-(--accent-subtle)"
+                  >
                     <PhoneOff className="h-4 w-4" />
                     Hang Up
                   </Button>
@@ -869,28 +873,28 @@ export function ChannelWorkspace({
               >
                 <div className="min-h-full p-1">
                   {!selectedChannel ? (
-                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-slate-500">Select a channel to start chatting.</p>
+                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-(--border-visible) bg-(--surface) p-4">
+                      <p className="text-sm text-(--text-secondary)">Select a channel to start chatting.</p>
                     </div>
                   ) : messagesLoading ? (
-                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm text-slate-500">Loading messages...</p>
+                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-(--border-visible) bg-(--surface) p-4">
+                      <p className="text-sm text-(--text-secondary)">Loading messages...</p>
                     </div>
                   ) : messagesError ? (
-                    <div className="flex h-full items-center justify-center rounded-md border border-red-200 bg-red-50 p-4">
-                      <p className="text-sm text-red-700">{messagesError}</p>
+                    <div className="flex h-full items-center justify-center rounded-md border border-(--accent)/60 bg-(--accent-subtle) p-4">
+                      <p className="text-sm text-(--accent)">{messagesError}</p>
                     </div>
                   ) : selectedChannelMessages.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-4">
+                    <div className="flex h-full items-center justify-center rounded-md border border-dashed border-(--border-visible) bg-(--surface) p-4">
                       {selectedChannel.type === 'INFO' ? (
                         <div className="text-center">
-                          <div className="mb-2 inline-flex rounded-full bg-slate-200 p-2 text-slate-600">
+                          <div className="mb-2 inline-flex rounded-full bg-(--surface-raised) p-2 text-(--text-secondary)">
                             <Info className="h-4 w-4" />
                           </div>
-                          <p className="text-sm text-slate-600">No announcements posted yet.</p>
+                          <p className="text-sm text-(--text-secondary)">No announcements posted yet.</p>
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-500">No messages yet in this channel.</p>
+                        <p className="text-sm text-(--text-secondary)">No messages yet in this channel.</p>
                       )}
                     </div>
                   ) : (
@@ -917,14 +921,14 @@ export function ChannelWorkspace({
                           {showAuthorLabel ? (
                             <p
                               className={[
-                                'mb-1 text-xs font-semibold text-slate-500',
+                                'nd-label mb-1 text-(--text-secondary)',
                                 isCurrentUserMessage ? 'text-right' : '',
                               ].join(' ')}
                             >
                               {message.authorUsername}
                             </p>
                           ) : null}
-                          <div className="max-w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 whitespace-pre-wrap break-all">
+                          <div className="max-w-full rounded-md border border-(--border) bg-(--surface) px-3 py-2 text-sm text-(--text-primary) whitespace-pre-wrap break-all">
                             {message.content}
                           </div>
                         </article>
@@ -943,7 +947,7 @@ export function ChannelWorkspace({
                         onClick={() => scrollToLatestMessage('smooth')}
                         aria-label="Jump to latest message"
                         title="Jump to latest"
-                        className="absolute -top-10 right-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition hover:bg-slate-100"
+                        className="absolute -top-10 right-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--border-visible) bg-(--surface-raised) text-(--text-secondary) transition hover:text-(--text-display)"
                       >
                         <ArrowDown className="h-4 w-4" />
                       </button>
@@ -959,10 +963,10 @@ export function ChannelWorkspace({
                           onKeyDown={handleDraftKeyDown}
                           placeholder={
                             selectedChannel?.type === 'INFO'
-                              ? 'Post an announcement...'
-                              : 'Type your message...'
+                              ? 'Announce'
+                              : 'Message'
                           }
-                          className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="servers-scroll-region flex w-full flex-1 resize-none rounded-md border border-(--border-visible) bg-(--surface) px-3 py-2 text-sm text-(--text-primary) placeholder:text-(--text-disabled) focus-visible:border-(--text-primary) focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                           disabled={!canSendInSelectedChannel}
                         />
                         <Button
@@ -977,14 +981,14 @@ export function ChannelWorkspace({
                         </Button>
                       </div>
                     ) : showReadOnlyInfoHint ? (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-(--text-secondary)">
                         Only owners and admins can post announcements in this channel.
                       </p>
                     ) : null}
                   </div>
 
                   {canSendInSelectedChannel && messageSendError ? (
-                    <p className="mt-2 text-xs text-red-600">{messageSendError}</p>
+                    <p className="mt-2 text-xs text-(--accent)">{messageSendError}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -998,7 +1002,7 @@ export function ChannelWorkspace({
             role="separator"
             aria-orientation="vertical"
             onMouseDown={startResize}
-            className="w-1 cursor-col-resize bg-slate-200 transition hover:bg-slate-300"
+            className="w-1 cursor-col-resize bg-(--border) transition hover:bg-(--border-visible)"
           />
           {membersSidebarContent}
         </>
@@ -1013,7 +1017,7 @@ export function ChannelWorkspace({
                 aria-label="Close members drawer"
                 onClick={closeMembersDrawer}
                 className={[
-                  'fixed inset-0 z-55 bg-slate-900/20 transition-opacity duration-300',
+                  'fixed inset-0 z-55 bg-black/35 transition-opacity duration-300',
                   membersSidebarCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
                 ].join(' ')}
               />
