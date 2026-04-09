@@ -55,7 +55,7 @@ export function DiscoverServersView({
     <section className="flex flex-1 flex-col px-4 py-6">
       <div className="mb-5 rounded-xl border border-(--border) bg-(--surface) p-4">
         <p className="nd-label text-(--text-secondary)">Discover Servers</p>
-        <h2 className="mt-1 text-xl font-medium text-(--text-display)">Find communities by name or description</h2>
+        <h2 className="mt-1 text-xl font-medium text-[#f0c265]">Find communities by name or description</h2>
         <form className="mt-4 flex gap-2" onSubmit={handleSubmit}>
           <Input
             value={query}
@@ -63,7 +63,11 @@ export function DiscoverServersView({
             placeholder="Search servers"
             className="flex-1"
           />
-          <Button type="submit" disabled={loading}>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="nd-logo-gradient-bg hover:brightness-110"
+          >
             <Search className="h-4 w-4" />
             Search
           </Button>
@@ -120,7 +124,7 @@ export function DiscoverServersView({
 
                 <p className="mb-3 nd-label text-(--text-secondary)">Owner: {server.owner}</p>
 
-                <p className="min-h-16 overflow-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-5 text-(--text-primary) line-clamp-4">
+                <p className="min-h-16 overflow-hidden whitespace-pre-wrap wrap-anywhere text-sm leading-5 text-(--text-primary) line-clamp-4">
                   {normalizeDescription(server.description)}
                 </p>
 

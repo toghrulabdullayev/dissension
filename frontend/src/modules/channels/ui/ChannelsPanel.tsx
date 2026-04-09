@@ -419,7 +419,7 @@ export function ChannelsPanel({
                 }
               }}
               disabled={!hasActiveServer}
-              className="nd-label inline-flex items-center gap-1 rounded-full border border-(--border-visible) px-2.5 py-1 text-(--text-secondary) transition hover:border-(--text-primary) hover:text-(--text-display)"
+              className="nd-label nd-logo-gradient-bg inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition hover:brightness-110"
             >
               <Plus className="h-3 w-3" />
               New
@@ -457,7 +457,7 @@ export function ChannelsPanel({
                       className={[
                         'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition',
                         active
-                          ? 'border border-(--text-display) bg-(--text-display) text-(--black)'
+                          ? 'nd-logo-gradient-bg border border-[#dd6639]/50 text-(--text-display)'
                           : 'border border-transparent text-(--text-secondary) hover:border-(--border) hover:text-(--text-display)',
                       ].join(' ')}
                     >
@@ -494,7 +494,7 @@ export function ChannelsPanel({
                           'absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border transition',
                           menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                           active
-                            ? 'border-(--black)/20 text-(--black) hover:bg-(--black)/10'
+                            ? 'nd-logo-gradient-bg border border-[#dd6639]/50 text-(--text-display) hover:brightness-110'
                             : 'border-(--border) text-(--text-secondary) hover:border-(--border-visible) hover:text-(--text-display)',
                         ].join(' ')}
                       >
@@ -607,7 +607,7 @@ export function ChannelsPanel({
 
       {isLeaveConfirmOpen
         ? createPortal(
-            <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4">
+            <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 p-4">
               <div className="w-full max-w-sm rounded-xl border border-(--border-visible) bg-(--surface) p-4">
                 <h3 className="text-sm font-medium text-(--text-display)">Leave server?</h3>
                 <p className="mt-2 text-sm text-(--text-secondary)">

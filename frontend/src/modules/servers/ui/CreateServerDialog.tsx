@@ -71,7 +71,7 @@ export function CreateServerDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">Create server</CardTitle>
+          <CardTitle className="text-xl text-(--text-display)">Create server</CardTitle>
           <CardDescription>Enter a server name to create a new workspace.</CardDescription>
         </CardHeader>
 

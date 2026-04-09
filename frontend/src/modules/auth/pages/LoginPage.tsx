@@ -8,9 +8,12 @@ export function LoginPage() {
       title="Welcome to Dissension"
       description="Sign in to your account"
       footer={
-        <p className="text-center">
+        <p className="text-center text-(--text-secondary)">
           Do not have an account?{' '}
-          <Link to="/signup" className="font-semibold text-slate-900 hover:underline">
+          <Link
+            to="/signup"
+            className="font-semibold text-(--text-display) transition-colors hover:text-[#f6dd53] hover:underline"
+          >
             Sign up
           </Link>
         </p>

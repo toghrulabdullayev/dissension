@@ -45,7 +45,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="login-username">Username</Label>
         <div className="relative">
-          <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--text-disabled)" />
           <Input
             id="login-username"
             className="pl-9"
@@ -61,7 +61,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="login-password">Password</Label>
         <div className="relative">
-          <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--text-disabled)" />
           <Input
             id="login-password"
             type="password"
@@ -76,7 +76,7 @@ export function LoginForm() {
       </div>
 
       {Object.keys(fieldErrors).length > 0 ? (
-        <ul className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <ul className="rounded-md border border-(--accent)/60 bg-(--accent-subtle) px-3 py-2 text-xs text-(--accent)">
           {Object.entries(fieldErrors).map(([field, message]) => (
             <li key={field}>
               {field}: {message}
@@ -85,9 +85,17 @@ export function LoginForm() {
         </ul>
       ) : null}
 
-      {statusMessage ? <p className="text-sm text-slate-600">{statusMessage}</p> : null}
+      {statusMessage ? <p className="text-sm text-(--text-secondary)">{statusMessage}</p> : null}
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        className="w-full border-0 text-black hover:brightness-105"
+        style={{
+          backgroundImage:
+            'linear-gradient(100deg, #c0483f 0%, #dd6639 35%, #eda642 70%, #f6dd53 100%)',
+        }}
+        disabled={isSubmitting}
+      >
         <LogIn className="h-4 w-4" />
         {isSubmitting ? 'Signing in...' : 'Sign in'}
       </Button>

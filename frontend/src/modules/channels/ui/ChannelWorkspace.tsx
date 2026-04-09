@@ -692,7 +692,7 @@ export function ChannelWorkspace({
                             </p>
 
                             {isCurrentUser ? (
-                              <span className="nd-label rounded-full border border-(--border) bg-(--surface-raised) px-2 py-0.5 text-(--text-secondary)">
+                              <span className="nd-label nd-logo-gradient-bg rounded-full border px-2 py-0.5">
                                 You
                               </span>
                             ) : null}
@@ -947,7 +947,7 @@ export function ChannelWorkspace({
                         onClick={() => scrollToLatestMessage('smooth')}
                         aria-label="Jump to latest message"
                         title="Jump to latest"
-                        className="absolute -top-10 right-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-(--border-visible) bg-(--surface-raised) text-(--text-secondary) transition hover:text-(--text-display)"
+                        className="absolute -top-10 right-0 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full nd-logo-gradient-bg border transition hover:brightness-110"
                       >
                         <ArrowDown className="h-4 w-4" />
                       </button>
@@ -975,7 +975,7 @@ export function ChannelWorkspace({
                           disabled={!canSendInSelectedChannel || messageDraft.trim().length === 0}
                           aria-label={selectedChannel?.type === 'INFO' ? 'Post announcement' : 'Send message'}
                           title={selectedChannel?.type === 'INFO' ? 'Post announcement' : 'Send message'}
-                          className="h-10 w-10 shrink-0 p-0 self-end"
+                          className="h-10 w-10 shrink-0 self-end nd-logo-gradient-bg p-0 hover:brightness-110"
                         >
                           <Send className="h-4 w-4" />
                         </Button>

@@ -303,7 +303,13 @@ export function ChannelsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-transparent text-(--text-primary)">
+    <div
+      className="min-h-screen bg-transparent text-(--text-primary)"
+      style={{
+        backgroundImage:
+          'radial-gradient(circle at 18% 8%, rgba(192,72,63,0.1), transparent 38%), radial-gradient(circle at 88% 85%, rgba(246,221,83,0.08), transparent 36%)',
+      }}
+    >
       <div className="flex min-h-screen">
         <ServerSidebar
           servers={servers}

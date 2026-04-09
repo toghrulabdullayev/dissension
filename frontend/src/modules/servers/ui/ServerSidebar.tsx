@@ -45,9 +45,15 @@ export function ServerSidebar({
   return (
     <>
       <aside className="sticky top-0 flex h-screen w-20 shrink-0 flex-col border-r border-(--border) bg-(--surface)/95 p-3">
-        <p className="nd-label mb-3 px-1 text-(--text-disabled)">
-          Servers
-        </p>
+        <div className="flex justify-center -mt-1.5">
+          <img
+            src="/logo.png"
+            alt="Dissension logo"
+            className="h-12 w-12 p-1 ml-0.5"
+          />
+        </div>
+
+        <div className="mb-3 mt-1.5 -mx-3 border-t border-(--border)" />
 
         <div
           className="servers-scroll-region flex-1 overflow-y-auto overflow-x-hidden"
@@ -75,7 +81,7 @@ export function ServerSidebar({
             className={[
               'mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border transition',
               isDiscoverActive
-                ? 'rounded-xl border-(--text-display) bg-(--text-display) text-(--black)'
+                ? 'nd-logo-gradient-bg rounded-xl border'
                 : 'border-(--border-visible) bg-(--surface-raised) text-(--text-secondary) hover:text-(--text-display)',
             ].join(' ')}
           >
@@ -98,7 +104,7 @@ export function ServerSidebar({
                   className={[
                     'mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-medium transition',
                     active
-                      ? 'rounded-xl border border-(--text-display) bg-(--text-display) text-(--black)'
+                      ? 'nd-logo-gradient-bg rounded-xl border'
                       : 'border border-(--border) bg-(--surface-raised) text-(--text-secondary) hover:text-(--text-display)',
                   ].join(' ')}
                 >
@@ -127,7 +133,7 @@ export function ServerSidebar({
       {tooltip
         ? createPortal(
             <div
-              className="pointer-events-none fixed z-[120] -translate-y-1/2"
+              className="pointer-events-none fixed z-120 -translate-y-1/2"
               style={{ top: tooltip.top, left: tooltip.left }}
             >
               <div className="relative flex items-center gap-1.5 rounded-lg border border-(--border-visible) bg-(--surface-raised) px-2 py-1.5 text-sm font-medium text-(--text-display)">

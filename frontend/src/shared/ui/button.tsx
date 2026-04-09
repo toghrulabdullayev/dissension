@@ -8,7 +8,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'border-(--text-display) bg-(--text-display) text-(--black) hover:bg-(--text-primary) hover:border-(--text-primary)',
+          'nd-logo-gradient-bg border hover:brightness-110',
         outline:
           'border-(--border-visible) bg-transparent text-(--text-primary) hover:border-(--text-primary) hover:text-(--text-display)',
         ghost:

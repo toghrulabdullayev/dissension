@@ -90,7 +90,7 @@ export function CreateChannelDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">{isUpdateMode ? 'Update channel' : 'Create channel'}</CardTitle>
+          <CardTitle className="text-xl text-(--text-display)">{isUpdateMode ? 'Update channel' : 'Create channel'}</CardTitle>
           <CardDescription>
             {isUpdateMode
               ? 'Update the channel name and type.'

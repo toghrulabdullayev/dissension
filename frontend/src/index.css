@@ -15,6 +15,24 @@
   --success: #4a9e5c;
   --warning: #d4a843;
   --interactive: #5b9bf6;
+  --logo-accent-1: #c0483f;
+  --logo-accent-2: #dd6639;
+  --logo-accent-3: #eda642;
+  --logo-accent-4: #f6dd53;
+  --logo-accent-gradient: linear-gradient(
+    100deg,
+    var(--logo-accent-1) 0%,
+    var(--logo-accent-2) 36%,
+    var(--logo-accent-3) 80%,
+    var(--logo-accent-4) 100%
+  );
+  --logo-accent-gradient-faint: linear-gradient(
+    100deg,
+    rgb(192 72 63 / 0.34) 0%,
+    rgb(221 102 57 / 0.34) 36%,
+    rgb(237 166 66 / 0.3) 80%,
+    rgb(246 221 83 / 0.24) 100%
+  );
 }
 
 @media (prefers-color-scheme: light) {
@@ -76,6 +94,19 @@
   .nd-display {
     font-family: "Doto", "Space Mono", monospace;
     letter-spacing: -0.02em;
+  }
+
+  .nd-logo-gradient-bg {
+    background-image: var(--logo-accent-gradient-faint);
+    border-color: rgb(221 102 57 / 0.55);
+    color: var(--text-display);
+  }
+
+  .nd-logo-gradient-text {
+    background-image: var(--logo-accent-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .servers-scroll-region {
