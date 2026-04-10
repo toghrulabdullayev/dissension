@@ -124,7 +124,7 @@ export function ServerSidebar({
           onMouseLeave={hideServerTooltip}
           onFocus={(event) => showServerTooltip('Log out', event.currentTarget)}
           onBlur={hideServerTooltip}
-          className="mx-auto mt-3 h-10 w-12 rounded-2xl px-0"
+          className="mx-auto mb-[13px] h-10 w-12 rounded-2xl px-0"
         >
           <LogOut className="h-4 w-4" />
         </Button>
